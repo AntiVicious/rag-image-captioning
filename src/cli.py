@@ -6,6 +6,11 @@ Usage:
     python -m src.cli build-db
     python -m src.cli caption --image path/to/image.jpg [--skip-detr]
     python -m src.cli --backend blip caption --image path/to/image.jpg
+
+    # Build against a smaller/different COCO split (e.g. val2017 instead of
+    # the ~18GB train2017 Config defaults to):
+    python -m src.cli --coco-img-dir ./coco/val2017 \\
+        --coco-ann-file ./coco/annotations/captions_val2017.json build-db
 """
 
 import argparse
@@ -19,6 +24,10 @@ def _build_config(args: argparse.Namespace) -> Config:
     config = Config()
     if args.backend:
         config.caption_backend = args.backend
+    if args.coco_img_dir:
+        config.coco_img_dir = args.coco_img_dir
+    if args.coco_ann_file:
+        config.coco_ann_file = args.coco_ann_file
     if getattr(args, "skip_detr", False):
         config.enable_segmentation = False
         config.enable_object_detection = False
@@ -59,6 +68,16 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["retrieval", "blip"],
         default=None,
         help="Override Config.caption_backend (default: retrieval)",
+    )
+    parser.add_argument(
+        "--coco-img-dir",
+        default=None,
+        help="Override Config.coco_img_dir (default: ./coco/train2017)",
+    )
+    parser.add_argument(
+        "--coco-ann-file",
+        default=None,
+        help="Override Config.coco_ann_file (default: ./coco/annotations/captions_train2017.json)",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

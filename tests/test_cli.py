@@ -71,6 +71,30 @@ def test_build_config_leaves_detr_enabled_by_default():
     assert config.enable_object_detection is True
 
 
+def test_build_config_overrides_coco_paths():
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "--coco-img-dir",
+            "./coco/val2017",
+            "--coco-ann-file",
+            "./coco/annotations/captions_val2017.json",
+            "build-db",
+        ]
+    )
+    config = _build_config(args)
+    assert config.coco_img_dir == "./coco/val2017"
+    assert config.coco_ann_file == "./coco/annotations/captions_val2017.json"
+
+
+def test_build_config_defaults_to_configs_own_coco_paths():
+    parser = build_parser()
+    args = parser.parse_args(["build-db"])
+    config = _build_config(args)
+    assert config.coco_img_dir == "./coco/train2017"
+    assert config.coco_ann_file == "./coco/annotations/captions_train2017.json"
+
+
 CASES = [
     test_no_subcommand_exits,
     test_caption_requires_image,
@@ -79,6 +103,8 @@ CASES = [
     test_build_config_defaults_to_configs_own_default,
     test_build_config_disables_detr_on_skip_flag,
     test_build_config_leaves_detr_enabled_by_default,
+    test_build_config_overrides_coco_paths,
+    test_build_config_defaults_to_configs_own_coco_paths,
 ]
 
 
