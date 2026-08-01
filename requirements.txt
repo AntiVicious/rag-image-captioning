@@ -1,5 +1,11 @@
-torch>=1.9.0
-torchvision>=0.10.0
+# Pinned exactly: newer torch releases (confirmed through 2.13.0) ship a
+# Windows CPU wheel whose native c10.dll fails to load ("OSError: [WinError
+# 1114] A dynamic link library (DLL) initialization routine failed") on at
+# least one real Windows dev machine, even with the VC++ 2015-2022
+# Redistributable already installed. 2.5.1/0.20.1 is a confirmed-working
+# pair on that machine; unpin only after verifying newer releases on Windows.
+torch==2.5.1
+torchvision==0.20.1
 numpy>=1.21.0
 open_clip_torch>=2.0.0
 
