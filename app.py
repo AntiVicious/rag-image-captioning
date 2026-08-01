@@ -19,6 +19,21 @@ def load_pipeline(caption_backend: str) -> Pipeline:
     return Pipeline(Config(caption_backend=caption_backend))
 
 
+def empty_caption_message() -> str:
+    """Guidance shown when generation returns an empty caption.
+
+    An empty result almost always means the ChromaDB collection has no
+    captions indexed yet (a fresh clone never ran `build-db`), not that
+    something crashed -- so this is surfaced as guidance, not an error.
+    """
+    return (
+        "No caption was generated. If this is a fresh clone, the ChromaDB "
+        "collection likely has no captions indexed yet. Run "
+        "`python -m src.cli build-db` (needs the COCO dataset downloaded "
+        "first) to populate it, then try again."
+    )
+
+
 def save_uploaded_file(uploaded_file) -> str:
     suffix = Path(uploaded_file.name).suffix or ".jpg"
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
@@ -79,7 +94,10 @@ def main() -> None:
                 try:
                     result = pipeline.caption_image(image_path, use_advanced=use_advanced)
                     st.markdown(f"**Backend:** {result['backend']}")
-                    st.info(result["generated_caption"])
+                    if result["generated_caption"]:
+                        st.info(result["generated_caption"])
+                    else:
+                        st.warning(empty_caption_message())
                     with st.expander("Retrieved context"):
                         st.write(result.get("retrieved_context", ""))
                     if result.get("detected_objects"):

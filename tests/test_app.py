@@ -38,10 +38,19 @@ def test_app_has_backend_selector_defaulting_to_retrieval():
     assert at.selectbox[0].value == "retrieval"
 
 
+def test_empty_caption_message_points_at_build_db():
+    import app
+
+    message = app.empty_caption_message()
+    assert message
+    assert "build-db" in message
+
+
 CASES = [
     test_app_renders_without_exception,
     test_app_shows_upload_prompt_before_any_file_is_uploaded,
     test_app_has_backend_selector_defaulting_to_retrieval,
+    test_empty_caption_message_points_at_build_db,
 ]
 
 
