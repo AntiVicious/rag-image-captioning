@@ -4,6 +4,7 @@ prefix-stripping logic touches it. Run with your own image:
 
     python diagnose_blip2.py path/to/image.jpg
 """
+
 import sys
 
 from PIL import Image
