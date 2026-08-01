@@ -20,6 +20,8 @@ class ModelManager:
         self.device = config.device
         self.clip_model = None
         self.clip_preprocess = None
+        self.blip2_model = None
+        self.blip2_processor = None
 
     def load_clip_model(self) -> Tuple[torch.nn.Module, Callable]:
         """Load and cache the CLIP model plus its preprocessing transform."""
@@ -35,6 +37,22 @@ class ModelManager:
         self.clip_model = self.clip_model.to(self.device)
         self.clip_model.eval()
         return self.clip_model, self.clip_preprocess
+
+    def load_blip2_model(self):
+        """Load and cache the BLIP-2 model plus its processor."""
+        if self.blip2_model is not None:
+            return self.blip2_model, self.blip2_processor
+
+        from transformers import Blip2ForConditionalGeneration, Blip2Processor
+
+        self.blip2_processor = Blip2Processor.from_pretrained(self.config.blip2_model_name)
+        self.blip2_model = Blip2ForConditionalGeneration.from_pretrained(
+            self.config.blip2_model_name,
+            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+        )
+        self.blip2_model = self.blip2_model.to(self.device)
+        self.blip2_model.eval()
+        return self.blip2_model, self.blip2_processor
 
     def encode_image(self, image_tensor: torch.Tensor) -> torch.Tensor:
         """Encode a preprocessed image tensor into a normalised CLIP embedding."""

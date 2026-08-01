@@ -21,6 +21,12 @@ def test_construction_does_not_load_clip():
     assert manager.clip_preprocess is None
 
 
+def test_construction_does_not_load_blip2():
+    manager = ModelManager(Config())
+    assert manager.blip2_model is None
+    assert manager.blip2_processor is None
+
+
 def test_encode_image_before_load_raises():
     import torch
 
@@ -40,6 +46,7 @@ def test_device_resolves_without_error():
 
 CASES = [
     test_construction_does_not_load_clip,
+    test_construction_does_not_load_blip2,
     test_encode_image_before_load_raises,
     test_device_resolves_without_error,
 ]
