@@ -17,3 +17,7 @@ sentencepiece>=0.1.96
 
 # CLI / dataset ingestion
 tqdm>=4.62.0
+
+# UI
+# width='stretch' (used in app.py) requires streamlit >= 1.36.
+streamlit>=1.36.0
