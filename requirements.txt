@@ -2,3 +2,7 @@ torch>=1.9.0
 torchvision>=0.10.0
 numpy>=1.21.0
 open_clip_torch>=2.0.0
+
+# Database
+# Pinned >=0.4: PersistentClient and the current list_collections/get_collection API arrived in 0.4.
+chromadb>=0.4.0
