@@ -16,3 +16,10 @@ jobs:
           python-version: "3.11"
       - name: Compile check
         run: python -m compileall -q .
+      - name: Run fast tests
+        run: |
+          set -e
+          for f in tests/test_*.py; do
+            echo "== $f =="
+            python "$f"
+          done
