@@ -3,6 +3,7 @@ Tests for src/pipeline.py that verify Pipeline construction wires all
 managers together WITHOUT loading any model or opening the database — every
 collaborator it builds is itself lazy, so this just checks that stays true.
 """
+
 import os
 import sys
 
@@ -10,8 +11,8 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src.config import Config
-from src.pipeline import Pipeline
+from src.config import Config  # noqa: E402
+from src.pipeline import Pipeline  # noqa: E402
 
 
 def test_construction_does_not_load_anything():

@@ -8,6 +8,7 @@ ImagePreprocessor) as constructor arguments rather than importing global
 singletons, so it can be unit tested against fakes without touching any
 real model or database.
 """
+
 from typing import Dict, Union
 
 from PIL import Image

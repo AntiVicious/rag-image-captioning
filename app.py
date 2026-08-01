@@ -1,6 +1,7 @@
 """
 Streamlit UI for the RAG Image Captioning pipeline.
 """
+
 import tempfile
 from pathlib import Path
 

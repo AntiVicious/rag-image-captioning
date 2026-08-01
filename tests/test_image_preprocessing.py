@@ -3,6 +3,7 @@ Tests for src/image_preprocessing.py that verify the lazy-loading contract
 and the crop math directly, WITHOUT downloading the DETR checkpoints
 (~170MB+ each). A real segmentation/detection run belongs in the smoke test.
 """
+
 import os
 import sys
 
@@ -10,10 +11,10 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from PIL import Image
+from PIL import Image  # noqa: E402
 
-from src.config import Config
-from src.image_preprocessing import ImagePreprocessor
+from src.config import Config  # noqa: E402
+from src.image_preprocessing import ImagePreprocessor  # noqa: E402
 
 
 def test_construction_does_not_load_detection_models():
@@ -59,7 +60,10 @@ def test_preprocess_for_clip_converts_and_unsqueezes():
 
     preprocessor = ImagePreprocessor(Config())
     image = Image.new("RGB", (32, 32))
-    fake_clip_preprocess = lambda img: torch.zeros(3, 32, 32)
+
+    def fake_clip_preprocess(img):
+        return torch.zeros(3, 32, 32)
+
     tensor = preprocessor.preprocess_for_clip(image, fake_clip_preprocess)
     assert tuple(tensor.shape) == (1, 3, 32, 32)
 

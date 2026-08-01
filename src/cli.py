@@ -7,6 +7,7 @@ Usage:
     python -m src.cli caption --image path/to/image.jpg [--skip-detr]
     python -m src.cli --backend blip caption --image path/to/image.jpg
 """
+
 import argparse
 import sys
 

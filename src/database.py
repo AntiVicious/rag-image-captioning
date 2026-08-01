@@ -2,6 +2,7 @@
 ChromaDB operations: a thin, typed wrapper around the persistent collection
 used to store CLIP embeddings and their captions.
 """
+
 from typing import Dict, List, Sequence
 
 from .config import Config

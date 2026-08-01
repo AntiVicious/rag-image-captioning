@@ -2,6 +2,7 @@
 Pipeline: wires Config + ModelManager + DatabaseManager + ImagePreprocessor
 + RAGRetriever + CaptionGenerator into the operations the CLI exposes.
 """
+
 import os
 from collections import defaultdict
 from typing import Dict, List, Tuple, Union
@@ -35,7 +36,9 @@ class Pipeline:
             self.model_manager.load_blip2_model()
         self.db_manager.initialize()
 
-    def caption_image(self, image: Union[str, Image.Image], top_k: int = None, use_advanced: bool = True) -> Dict:
+    def caption_image(
+        self, image: Union[str, Image.Image], top_k: int = None, use_advanced: bool = True
+    ) -> Dict:
         return self.generator.generate(image, top_k=top_k, use_advanced=use_advanced)
 
     def build_database_from_coco(self) -> bool:

@@ -2,6 +2,7 @@
 Tests for src/cli.py argument parsing and config building — never invokes
 Pipeline.setup()/caption_image(), so no real model/database work happens.
 """
+
 import os
 import sys
 
@@ -9,7 +10,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src.cli import _build_config, build_parser
+from src.cli import _build_config, build_parser  # noqa: E402
 
 
 def test_no_subcommand_exits():

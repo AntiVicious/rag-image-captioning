@@ -6,12 +6,14 @@ constants) so it can be constructed with overrides in tests/CI without
 monkeypatching a module, and so multiple configurations can coexist in the
 same process if ever needed.
 """
+
 import os
 from dataclasses import dataclass
 
 
 def _detect_device() -> str:
     import torch
+
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 

@@ -5,6 +5,7 @@ Detection models are lazy-loaded on first use (not at import time, and not
 at ImagePreprocessor construction), so importing this module or building a
 preprocessor never triggers a multi-hundred-MB weights download.
 """
+
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -39,8 +40,12 @@ class ImagePreprocessor:
             return
         from transformers import DetrForObjectDetection, DetrImageProcessor
 
-        self.object_detection_processor = DetrImageProcessor.from_pretrained(self.config.object_detection_model)
-        self.object_detection_model = DetrForObjectDetection.from_pretrained(self.config.object_detection_model)
+        self.object_detection_processor = DetrImageProcessor.from_pretrained(
+            self.config.object_detection_model
+        )
+        self.object_detection_model = DetrForObjectDetection.from_pretrained(
+            self.config.object_detection_model
+        )
         self.object_detection_model.to(self.device)
         self.object_detection_model.eval()
 

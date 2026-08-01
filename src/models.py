@@ -5,6 +5,7 @@ Models are loaded lazily — on first call to a `load_*` method, never at
 import time or at ModelManager construction time — so importing this
 module or constructing a ModelManager never triggers a weights download.
 """
+
 from typing import Callable, Tuple
 
 import torch

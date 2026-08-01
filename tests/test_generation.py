@@ -2,6 +2,7 @@
 Tests for src/generation.py using fake collaborators — no real CLIP,
 ChromaDB, or BLIP-2 weights involved.
 """
+
 import os
 import sys
 
@@ -9,12 +10,12 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-import torch
-from PIL import Image
+import torch  # noqa: E402
+from PIL import Image  # noqa: E402
 
-from src.config import Config
-from src.generation import CaptionGenerator
-from src.rag_retrieval import RAGRetriever
+from src.config import Config  # noqa: E402
+from src.generation import CaptionGenerator  # noqa: E402
+from src.rag_retrieval import RAGRetriever  # noqa: E402
 
 
 class FakeDatabaseManager:

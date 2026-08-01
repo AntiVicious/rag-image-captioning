@@ -8,6 +8,7 @@ Config.caption_backend selects the strategy:
   "blip"      -> BLIP-2 generates the final caption, conditioned on the
                  image plus the retrieved context as a text prompt
 """
+
 from typing import Dict, Union
 
 from PIL import Image
@@ -76,7 +77,9 @@ class CaptionGenerator:
                 num_beams=self.config.num_beams,
                 do_sample=False,
             )
-        generated_caption = self.model_manager.blip2_processor.decode(generated_ids[0], skip_special_tokens=True)
+        generated_caption = self.model_manager.blip2_processor.decode(
+            generated_ids[0], skip_special_tokens=True
+        )
         # Case-insensitive strip of a "caption:" prefix BLIP-2 sometimes
         # echoes back. Search on the lowercased string but slice the
         # original so casing elsewhere in the text is preserved.

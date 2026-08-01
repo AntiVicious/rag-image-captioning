@@ -1,6 +1,7 @@
 """
 Caption aggregation: merges retrieved caption blocks into one context string.
 """
+
 from typing import List
 
 
@@ -21,19 +22,19 @@ def aggregate_captions(caption_blocks: List[str], max_length: int = 500) -> str:
     for block in caption_blocks:
         if not block:
             continue
-        pieces = [p.strip() for p in block.replace('. ', '.\n').split('\n')]
+        pieces = [p.strip() for p in block.replace(". ", ".\n").split("\n")]
         for piece in pieces:
             if not piece:
                 continue
-            norm = ' '.join(piece.lower().split()).rstrip('.')
+            norm = " ".join(piece.lower().split()).rstrip(".")
             if norm in seen_norm or len(norm) < 4:
                 continue
             seen_norm.add(norm)
-            unique_sentences.append(piece if piece.endswith('.') else piece + '.')
+            unique_sentences.append(piece if piece.endswith(".") else piece + ".")
 
-    aggregated = ' '.join(unique_sentences)
+    aggregated = " ".join(unique_sentences)
 
     if len(aggregated) > max_length:
-        aggregated = aggregated[:max_length].rsplit('.', 1)[0] + '.'
+        aggregated = aggregated[:max_length].rsplit(".", 1)[0] + "."
 
     return aggregated

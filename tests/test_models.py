@@ -4,6 +4,7 @@ triggering an actual CLIP weights download (~350MB) — that would make CI
 slow and flaky on network hiccups. A real download is exercised manually /
 in the smoke test instead, once one exists.
 """
+
 import os
 import sys
 
@@ -11,8 +12,8 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src.config import Config
-from src.models import ModelManager
+from src.config import Config  # noqa: E402
+from src.models import ModelManager  # noqa: E402
 
 
 def test_construction_does_not_load_clip():

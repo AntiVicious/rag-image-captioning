@@ -3,6 +3,7 @@ Tests for src/database.py against a real, throwaway ChromaDB instance in a
 temp directory — no network access or real embeddings needed, just small
 fake vectors, so this stays fast.
 """
+
 import os
 import shutil
 import sys
@@ -12,8 +13,8 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src.config import Config
-from src.database import DatabaseManager
+from src.config import Config  # noqa: E402
+from src.database import DatabaseManager  # noqa: E402
 
 
 def _make_manager(tmp_dir: str) -> DatabaseManager:

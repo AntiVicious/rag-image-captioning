@@ -2,6 +2,7 @@
 Fast tests for src/config.py. No ML deps: Config only imports torch lazily
 inside the .device property, so constructing/inspecting it is cheap.
 """
+
 import os
 import shutil
 import sys
@@ -11,7 +12,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src.config import Config
+from src.config import Config  # noqa: E402
 
 
 def test_defaults_favor_no_gpu_by_default():
