@@ -5,6 +5,9 @@ chroma_db/
 *.bin
 *.safetensors
 
+# Throwaway images from manual/diagnostic testing
+smoke_test_image.jpg
+
 # Python
 __pycache__/
 *.pyc
