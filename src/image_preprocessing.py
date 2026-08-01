@@ -31,7 +31,11 @@ class ImagePreprocessor:
         from transformers import DetrForSegmentation, DetrImageProcessor
 
         self.segmentation_processor = DetrImageProcessor.from_pretrained(self.config.segmentation_model)
-        self.segmentation_model = DetrForSegmentation.from_pretrained(self.config.segmentation_model)
+        # use_safetensors=True: refuse to fall back to pickle-based torch.load
+        # (CVE-2025-32434) regardless of installed torch version.
+        self.segmentation_model = DetrForSegmentation.from_pretrained(
+            self.config.segmentation_model, use_safetensors=True
+        )
         self.segmentation_model.to(self.device)
         self.segmentation_model.eval()
 
@@ -43,8 +47,10 @@ class ImagePreprocessor:
         self.object_detection_processor = DetrImageProcessor.from_pretrained(
             self.config.object_detection_model
         )
+        # use_safetensors=True: refuse to fall back to pickle-based torch.load
+        # (CVE-2025-32434) regardless of installed torch version.
         self.object_detection_model = DetrForObjectDetection.from_pretrained(
-            self.config.object_detection_model
+            self.config.object_detection_model, use_safetensors=True
         )
         self.object_detection_model.to(self.device)
         self.object_detection_model.eval()

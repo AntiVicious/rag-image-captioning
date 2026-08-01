@@ -47,9 +47,12 @@ class ModelManager:
         from transformers import Blip2ForConditionalGeneration, Blip2Processor
 
         self.blip2_processor = Blip2Processor.from_pretrained(self.config.blip2_model_name)
+        # use_safetensors=True: refuse to fall back to pickle-based torch.load
+        # (CVE-2025-32434) regardless of installed torch version.
         self.blip2_model = Blip2ForConditionalGeneration.from_pretrained(
             self.config.blip2_model_name,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+            use_safetensors=True,
         )
         self.blip2_model = self.blip2_model.to(self.device)
         self.blip2_model.eval()
