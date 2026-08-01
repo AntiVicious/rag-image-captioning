@@ -19,7 +19,14 @@ Pillow>=8.3.0
 
 # BLIP-2 caption generation backend
 accelerate>=0.20.0
-sentencepiece>=0.1.96
+# Pinned exactly: sentencepiece 0.2.2 (latest as of writing) crashes with a
+# native access violation on `import sentencepiece` alone on the same
+# Windows dev machine referenced above -- deterministic across repeated
+# runs, not an ASLR fluke. Also crashes indirectly: `import open_clip`
+# transitively imports transformers' AutoTokenizer machinery, which imports
+# sentencepiece, which crashes -- so this bites even the "retrieval"
+# backend (CLIP-only), not just BLIP-2. 0.2.0 is confirmed-working.
+sentencepiece==0.2.0
 
 # CLI / dataset ingestion
 tqdm>=4.62.0
