@@ -14,3 +14,6 @@ Pillow>=8.3.0
 # BLIP-2 caption generation backend
 accelerate>=0.20.0
 sentencepiece>=0.1.96
+
+# CLI / dataset ingestion
+tqdm>=4.62.0
