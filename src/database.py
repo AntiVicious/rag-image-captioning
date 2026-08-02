@@ -33,17 +33,31 @@ class DatabaseManager:
             self.initialize()
         return self.collection
 
-    def add_embeddings(self, embeddings: Sequence, documents: List[str], ids: List[str]) -> None:
+    def add_embeddings(
+        self, embeddings: Sequence, documents: List[str], ids: List[str]
+    ) -> None:
         """Add a batch of (embedding, caption, id) rows to the collection."""
         collection = self._get_collection()
-        collection.add(embeddings=[list(e) for e in embeddings], documents=documents, ids=ids)
+        # float(x): chromadb's embedding validation rejects lists containing
+        # np.float32 scalars (only native floats/ints, numpy arrays, or lists
+        # of numpy arrays are accepted) -- list(e) alone preserves np.float32.
+        collection.add(
+            embeddings=[[float(x) for x in e] for e in embeddings],
+            documents=documents,
+            ids=ids,
+        )
 
     def query_similar(self, query_embedding: Sequence, top_k: int = 5) -> Dict:
         """Return the top_k nearest captions to a query embedding."""
         collection = self._get_collection()
-        return collection.query(query_embeddings=[list(query_embedding)], n_results=top_k)
+        return collection.query(
+            query_embeddings=[[float(x) for x in query_embedding]], n_results=top_k
+        )
 
     def get_stats(self) -> Dict:
         """Return basic statistics about the collection."""
         collection = self._get_collection()
-        return {"total_embeddings": collection.count(), "collection_name": self.config.collection_name}
+        return {
+            "total_embeddings": collection.count(),
+            "collection_name": self.config.collection_name,
+        }

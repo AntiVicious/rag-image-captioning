@@ -50,12 +50,40 @@ def test_add_and_query_round_trip():
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def test_add_accepts_numpy_float32_embeddings():
+    """Regression test: CLIP's encode_image returns np.float32 arrays, and
+    chromadb's embedding validation rejects a list of lists containing
+    np.float32 scalars (only native floats/ints, numpy arrays, or lists of
+    numpy arrays are accepted) -- add_embeddings must cast to native float.
+    """
+    import numpy as np
+
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        manager = _make_manager(tmp_dir)
+        manager.add_embeddings(
+            embeddings=[np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)],
+            documents=["a cat sits on a mat."],
+            ids=["img1_cap1"],
+        )
+        assert manager.get_stats()["total_embeddings"] == 1
+
+        results = manager.query_similar(
+            np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32), top_k=1
+        )
+        assert results["documents"][0][0] == "a cat sits on a mat."
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 def test_reopening_existing_collection_preserves_data():
     tmp_dir = tempfile.mkdtemp()
     try:
         config = Config(chroma_db_dir=os.path.join(tmp_dir, "chroma_db"))
         DatabaseManager(config).add_embeddings(
-            embeddings=[[0.5, 0.5, 0.0, 0.0]], documents=["a bird flies."], ids=["img3_cap1"]
+            embeddings=[[0.5, 0.5, 0.0, 0.0]],
+            documents=["a bird flies."],
+            ids=["img3_cap1"],
         )
         reopened = DatabaseManager(config)
         assert reopened.get_stats()["total_embeddings"] == 1
@@ -66,6 +94,7 @@ def test_reopening_existing_collection_preserves_data():
 CASES = [
     test_initialize_creates_collection,
     test_add_and_query_round_trip,
+    test_add_accepts_numpy_float32_embeddings,
     test_reopening_existing_collection_preserves_data,
 ]
 
