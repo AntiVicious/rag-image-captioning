@@ -58,7 +58,12 @@ def main() -> None:
             index=0,
             help="'retrieval' needs no GPU. 'blip' generates via BLIP-2 and needs GPU weights.",
         )
-        use_advanced = st.checkbox("Use segmentation/object-detection crops", value=True)
+        use_advanced = st.checkbox(
+            "Use segmentation/object-detection crops",
+            value=False,
+            help="Known issue: DETR checkpoint loading currently fails in this environment"
+            " (see CLAUDE.md's Known sharp edges). Basic retrieval works reliably.",
+        )
 
         if st.button("Initialize pipeline", type="primary"):
             with st.spinner("Loading models and database..."):
