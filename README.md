@@ -6,7 +6,7 @@ Built incrementally, one module at a time, each step verified by CI. See commit 
 
 ## Status
 
-Core retrieval pipeline works end-to-end (verified against a real, populated database). Advanced (segmentation/object-detection crop) retrieval is a known limitation on this stack right now — see Known issues.
+Core retrieval pipeline works end-to-end, including advanced (segmentation/object-detection crop) retrieval — verified against a real, populated database.
 
 ## Running locally (Windows)
 
@@ -47,7 +47,6 @@ then `wsl --shutdown` followed by restarting Docker Desktop (an app-only restart
 ## Known issues
 
 - **ChromaDB native crash on Windows** (see above) — always run `build-db` and the app via Docker on Windows.
-- **Advanced retrieval (segmentation/object-detection crops) currently broken.** `DetrForSegmentation.from_pretrained("facebook/detr-resnet-50-panoptic")` fails in two different ways depending on the `transformers` version:
-  - `transformers` 5.x (auto-resolved from `>=4.35.0`): loads successfully but then blows past 10GB+ RSS and gets OOM-killed — looks like a real memory regression for this checkpoint, not just an under-provisioned VM (raising the WSL2 memory cap didn't help; peak usage scaled to match whatever ceiling was available).
-  - `transformers==4.44.0` (pinned to work around the above): no longer OOMs, but its safetensors-detection logic doesn't find this checkpoint's safetensors weights and falls back to an auto-conversion code path that crashes on a `huggingface_hub` API incompatibility (`ValueError: dictionary update sequence element #0 has length 1; 2 is required`) — reproduces identically even when `huggingface_hub` is pinned to a version contemporaneous with 4.44.0 (`0.24.6`).
-  - Net effect: the "Use segmentation/object-detection crops" checkbox in the Streamlit app defaults to **off**. Basic retrieval (CLIP + ChromaDB, no crops) is fully working and is the recommended path until this is root-caused further.
+- **`transformers` is pinned to `4.46.3`.** Two real, independent upstream bugs affect `DetrForSegmentation.from_pretrained("facebook/detr-resnet-50-panoptic")` outside this range:
+  - `transformers` 5.x (what `>=4.35.0` auto-resolves to): loads successfully but then blows past 10GB+ RSS and gets OOM-killed — a real memory regression for this checkpoint, not just an under-provisioned VM (raising the WSL2 memory cap didn't help; peak usage scaled to match whatever ceiling was available).
+  - `transformers` 4.44.0 and earlier: `safetensors_conversion.auto_conversion()` constructs `HfApi(headers=http_user_agent())`, passing a user-agent *string* where a headers *dict* is required, so `build_hf_headers()`'s `dict.update()` blows up (`ValueError: dictionary update sequence element #0 has length 1; 2 is required`). Fixed upstream in [huggingface/transformers#34010](https://github.com/huggingface/transformers/pull/34010), first shipped in `4.46.0`. `4.46.3` avoids both bugs.

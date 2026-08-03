@@ -17,15 +17,14 @@ chromadb>=0.4.0
 # Pinned exactly: transformers 5.x's DetrForSegmentation.from_pretrained()
 # blows past 10GB RSS and gets OOM-killed loading a ~180MB safetensors
 # checkpoint on CPU (reproduced in a Linux container, so not a Windows-only
-# issue) -- 4.44.0 is a confirmed-working release for this checkpoint.
-transformers==4.44.0
-# Pinned exactly: transformers==4.44.0's safetensors_conversion.auto_conversion
-# path calls huggingface_hub's build_hf_headers() with an argument shape that
-# a much newer huggingface_hub (0.36.2, auto-resolved otherwise) no longer
-# accepts (ValueError: dictionary update sequence element #0 has length 1;
-# 2 is required). 0.24.6 is contemporaneous with transformers 4.44.0 and
-# confirmed-working.
-huggingface_hub==0.24.6
+# issue). Older 4.44.0 avoids that, but hits a *different*, genuine bug:
+# safetensors_conversion.auto_conversion() constructs HfApi(headers=
+# http_user_agent()), passing a string where a dict is required, so
+# build_hf_headers() -> dict.update(a_string) blows up ("dictionary update
+# sequence element #0 has length 1; 2 is required") -- fixed upstream in
+# huggingface/transformers#34010, first released in 4.46.0. 4.46.3 has
+# neither bug: confirmed-working for DetrForSegmentation on CPU.
+transformers==4.46.3
 Pillow>=8.3.0
 
 # BLIP-2 caption generation backend
