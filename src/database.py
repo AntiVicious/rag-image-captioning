@@ -45,10 +45,14 @@ class DatabaseManager:
             ids=ids,
         )
 
-    def query_similar(self, query_embedding: Sequence, top_k: int = 5) -> Dict:
-        """Return the top_k nearest captions to a query embedding."""
+    def query_similar(self, query_embeddings: Sequence[Sequence], top_k: int = 5) -> Dict:
+        """Return the top_k nearest captions for each of N query embeddings in
+        one round trip (chromadb natively supports multi-query batching --
+        callers pass a list even for a single query)."""
         collection = self._get_collection()
-        return collection.query(query_embeddings=[[float(x) for x in query_embedding]], n_results=top_k)
+        return collection.query(
+            query_embeddings=[[float(x) for x in e] for e in query_embeddings], n_results=top_k
+        )
 
     def get_stats(self) -> Dict:
         """Return basic statistics about the collection."""

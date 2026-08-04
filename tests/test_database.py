@@ -44,7 +44,7 @@ def test_add_and_query_round_trip():
         )
         assert manager.get_stats()["total_embeddings"] == 2
 
-        results = manager.query_similar([1.0, 0.0, 0.0, 0.0], top_k=1)
+        results = manager.query_similar([[1.0, 0.0, 0.0, 0.0]], top_k=1)
         assert results["documents"][0][0] == "a cat sits on a mat."
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -68,7 +68,7 @@ def test_add_accepts_numpy_float32_embeddings():
         )
         assert manager.get_stats()["total_embeddings"] == 1
 
-        results = manager.query_similar(np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32), top_k=1)
+        results = manager.query_similar([np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)], top_k=1)
         assert results["documents"][0][0] == "a cat sits on a mat."
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

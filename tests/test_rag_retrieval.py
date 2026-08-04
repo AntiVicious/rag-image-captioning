@@ -25,20 +25,21 @@ class FakeModelManager:
         self._embedding = embedding
 
     def encode_image(self, tensor):
-        return self._embedding
+        # real encode_image accepts a batch of N variant tensors in one
+        # call; the fake mirrors that by returning N copies of the fixed
+        # embedding, one per row in the input batch.
+        return self._embedding.repeat(tensor.shape[0], 1)
 
 
 class FakeDatabaseManager:
-    """Returns a fixed sequence of caption lists, one per query_similar call."""
+    """Returns one caption list per query embedding, all from a single
+    batched query_similar call (matching the real batched API)."""
 
-    def __init__(self, documents_by_call):
-        self._documents_by_call = documents_by_call
-        self._calls = 0
+    def __init__(self, documents_by_query):
+        self._documents_by_query = documents_by_query
 
-    def query_similar(self, query_embedding, top_k):
-        docs = self._documents_by_call[self._calls]
-        self._calls += 1
-        return {"documents": [docs]}
+    def query_similar(self, query_embeddings, top_k):
+        return {"documents": self._documents_by_query[: len(query_embeddings)]}
 
 
 class FakePreprocessor:

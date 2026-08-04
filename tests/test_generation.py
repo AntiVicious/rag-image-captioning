@@ -19,14 +19,11 @@ from src.rag_retrieval import RAGRetriever  # noqa: E402
 
 
 class FakeDatabaseManager:
-    def __init__(self, documents_by_call):
-        self._documents_by_call = documents_by_call
-        self._calls = 0
+    def __init__(self, documents_by_query):
+        self._documents_by_query = documents_by_query
 
-    def query_similar(self, query_embedding, top_k):
-        docs = self._documents_by_call[self._calls]
-        self._calls += 1
-        return {"documents": [docs]}
+    def query_similar(self, query_embeddings, top_k):
+        return {"documents": self._documents_by_query[: len(query_embeddings)]}
 
 
 class FakePreprocessor:

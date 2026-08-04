@@ -1,0 +1,8 @@
+# Evaluation-only dependencies -- not needed by the app itself, so kept
+# out of requirements.txt to avoid bloating the production image.
+#
+# pycocoevalcap bundles the official COCO caption-eval scorers (BLEU,
+# METEOR, ROUGE-L, CIDEr, SPICE) plus a PTBTokenizer. METEOR and
+# PTBTokenizer both shell out to a bundled Java jar -- a JRE must be
+# installed separately (see Dockerfile.eval).
+pycocoevalcap>=1.2

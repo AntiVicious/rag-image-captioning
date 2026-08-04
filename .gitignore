@@ -1,6 +1,8 @@
 # Data / model artifacts
 coco/
 chroma_db/
+chroma_db_eval/
+eval_output/
 *.pt
 *.bin
 *.safetensors
