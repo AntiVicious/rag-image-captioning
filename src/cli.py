@@ -28,6 +28,8 @@ def _build_config(args: argparse.Namespace) -> Config:
         config.coco_img_dir = args.coco_img_dir
     if args.coco_ann_file:
         config.coco_ann_file = args.coco_ann_file
+    if args.chroma_db_dir:
+        config.chroma_db_dir = args.chroma_db_dir
     if getattr(args, "skip_detr", False):
         config.enable_segmentation = False
         config.enable_object_detection = False
@@ -78,6 +80,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--coco-ann-file",
         default=None,
         help="Override Config.coco_ann_file (default: ./coco/annotations/captions_train2017.json)",
+    )
+    parser.add_argument(
+        "--chroma-db-dir",
+        default=None,
+        help="Override Config.chroma_db_dir (default: ./chroma_db) -- e.g. to build a separate "
+        "index without touching the one the app uses",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

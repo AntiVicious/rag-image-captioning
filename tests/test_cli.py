@@ -95,6 +95,20 @@ def test_build_config_defaults_to_configs_own_coco_paths():
     assert config.coco_ann_file == "./coco/annotations/captions_train2017.json"
 
 
+def test_build_config_overrides_chroma_db_dir():
+    parser = build_parser()
+    args = parser.parse_args(["--chroma-db-dir", "./chroma_db_scale_test", "build-db"])
+    config = _build_config(args)
+    assert config.chroma_db_dir == "./chroma_db_scale_test"
+
+
+def test_build_config_defaults_to_configs_own_chroma_db_dir():
+    parser = build_parser()
+    args = parser.parse_args(["build-db"])
+    config = _build_config(args)
+    assert config.chroma_db_dir == "./chroma_db"
+
+
 CASES = [
     test_no_subcommand_exits,
     test_caption_requires_image,
@@ -105,6 +119,8 @@ CASES = [
     test_build_config_leaves_detr_enabled_by_default,
     test_build_config_overrides_coco_paths,
     test_build_config_defaults_to_configs_own_coco_paths,
+    test_build_config_overrides_chroma_db_dir,
+    test_build_config_defaults_to_configs_own_chroma_db_dir,
 ]
 
 

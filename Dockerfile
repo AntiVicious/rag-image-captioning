@@ -5,6 +5,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Separate, lighter layer: changes here don't invalidate the heavy
+# install above (see requirements-scripts.txt for why).
+COPY requirements-scripts.txt .
+RUN pip install --no-cache-dir -r requirements-scripts.txt
+
 COPY . .
 
 EXPOSE 8501
