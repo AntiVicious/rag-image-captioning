@@ -71,12 +71,12 @@ _HTML_TAG = re.compile(r"<[^>]+>")
 _WS = re.compile(r"\s+")
 
 
-def _get(session, params, retries=5):
+def _get(session, params, retries=8):
     params = dict(params, format="json")
     for attempt in range(retries):
         resp = session.get(API, params=params, headers=HEADERS, timeout=30)
         if resp.status_code == 429 or "too many requests" in resp.text.lower():
-            wait = 2**attempt
+            wait = min(2**attempt, 60)
             print(f"  rate limited, backing off {wait}s...")
             time.sleep(wait)
             continue
@@ -86,7 +86,7 @@ def _get(session, params, retries=5):
     raise RuntimeError(f"Repeated rate limiting on {params}")
 
 
-def list_category_files(session, category, cap):
+def _list_direct_files(session, category, cap):
     titles = []
     cmcontinue = None
     while len(titles) < cap:
@@ -108,6 +108,39 @@ def list_category_files(session, category, cap):
     return titles[:cap]
 
 
+def _list_subcategories(session, category, limit=20):
+    params = {
+        "action": "query",
+        "list": "categorymembers",
+        "cmtitle": f"Category:{category}",
+        "cmtype": "subcat",
+        "cmlimit": limit,
+    }
+    data = _get(session, params)
+    members = data.get("query", {}).get("categorymembers", [])
+    return [m["title"].removeprefix("Category:") for m in members]
+
+
+def list_category_files(session, category, cap):
+    """Direct files in the category; if that's not enough to fill cap,
+    many Commons categories (e.g. Diwali, Indian weddings) organize
+    everything into subcategories with zero files directly in the parent
+    -- so also pull from a handful of first-level subcategories."""
+    titles = _list_direct_files(session, category, cap)
+    if len(titles) >= cap:
+        return titles
+
+    seen = set(titles)
+    for subcat in _list_subcategories(session, category):
+        if len(titles) >= cap:
+            break
+        for title in _list_direct_files(session, subcat, cap - len(titles)):
+            if title not in seen:
+                seen.add(title)
+                titles.append(title)
+    return titles[:cap]
+
+
 def fetch_image_info(session, titles):
     """Batch imageinfo lookup, 50 titles per call (Commons API limit).
 
@@ -126,7 +159,11 @@ def fetch_image_info(session, titles):
             "iiprop": "url|extmetadata|mime|size",
             "iiurlwidth": 800,
         }
-        data = _get(session, params)
+        try:
+            data = _get(session, params)
+        except RuntimeError as e:
+            print(f"  skip batch of {len(batch)} (persistent rate limiting): {e}")
+            continue
         pages = data.get("query", {}).get("pages", {})
         for page in pages.values():
             info = page.get("imageinfo")
@@ -189,7 +226,11 @@ def main():
         if next_id - args.id_offset >= args.total_target:
             break
         print(f"\n=== Category:{category} ===")
-        titles = list_category_files(session, category, args.per_category_cap)
+        try:
+            titles = list_category_files(session, category, args.per_category_cap)
+        except RuntimeError as e:
+            print(f"  skip category (persistent rate limiting): {e}")
+            continue
         print(f"  {len(titles)} candidate files")
         if not titles:
             continue
