@@ -3,6 +3,7 @@ coco/
 chroma_db/
 chroma_db_eval/
 eval_output/
+dist_shift_output/
 *.pt
 *.bin
 *.safetensors

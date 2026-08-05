@@ -74,7 +74,13 @@ _WS = re.compile(r"\s+")
 def _get(session, params, retries=8):
     params = dict(params, format="json")
     for attempt in range(retries):
-        resp = session.get(API, params=params, headers=HEADERS, timeout=30)
+        try:
+            resp = session.get(API, params=params, headers=HEADERS, timeout=30)
+        except requests.exceptions.RequestException as e:
+            wait = min(2**attempt, 60)
+            print(f"  network error ({e.__class__.__name__}), retrying in {wait}s...")
+            time.sleep(wait)
+            continue
         if resp.status_code == 429 or "too many requests" in resp.text.lower():
             wait = min(2**attempt, 60)
             print(f"  rate limited, backing off {wait}s...")
@@ -83,7 +89,7 @@ def _get(session, params, retries=8):
         resp.raise_for_status()
         time.sleep(0.4)  # be polite regardless
         return resp.json()
-    raise RuntimeError(f"Repeated rate limiting on {params}")
+    raise RuntimeError(f"Repeated failures (rate limiting or network errors) on {params}")
 
 
 def _list_direct_files(session, category, cap):
@@ -161,8 +167,8 @@ def fetch_image_info(session, titles):
         }
         try:
             data = _get(session, params)
-        except RuntimeError as e:
-            print(f"  skip batch of {len(batch)} (persistent rate limiting): {e}")
+        except Exception as e:
+            print(f"  skip batch of {len(batch)} ({e.__class__.__name__}): {e}")
             continue
         pages = data.get("query", {}).get("pages", {})
         for page in pages.values():
@@ -228,8 +234,8 @@ def main():
         print(f"\n=== Category:{category} ===")
         try:
             titles = list_category_files(session, category, args.per_category_cap)
-        except RuntimeError as e:
-            print(f"  skip category (persistent rate limiting): {e}")
+        except Exception as e:
+            print(f"  skip category ({e.__class__.__name__}): {e}")
             continue
         print(f"  {len(titles)} candidate files")
         if not titles:
