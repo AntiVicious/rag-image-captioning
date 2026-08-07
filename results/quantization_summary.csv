@@ -1,4 +1,4 @@
-representation,memory_mb,pct_memory_saved,recall_at_10_vs_float32,pct_recall_lost
+representation,theoretical_memory_mb_not_achievable_in_chromadb,pct_theoretical_memory_saved,ranking_recall_at_10_vs_float32_self_excluded,pct_ranking_changed
 float32,204.8,0.0,1.0,0.0
-float16,102.4,50.0,0.9915,0.85
-int8,51.2,75.0,0.9390,6.10
+float16,102.4,50.0,0.9155,8.45
+int8,51.2,75.0,0.8775,12.25

@@ -63,16 +63,17 @@ def test_build_config_disables_detr_on_skip_flag():
     assert config.enable_object_detection is False
 
 
-def test_build_config_leaves_detr_disabled_by_default():
-    """Config.enable_segmentation/enable_object_detection default to False
-    (see src/config.py) since the ablation in scripts/evaluate.py shows
-    crop-augmented retrieval scores worse than retrieval-only at far higher
-    latency. --skip-detr is therefore a no-op today, kept for explicitness
-    and forward-compat if an opt-in crops flag is added later."""
+def test_build_config_leaves_defaults_by_default():
+    """Config.enable_segmentation defaults True / enable_object_detection
+    defaults False (see src/config.py): under selection_mode="medoid" (also
+    the default), +segmentation is the best-scoring config measured in this
+    project, while adding object-detection on top of it scores worse than
+    segmentation alone. --skip-detr overrides both to False for anyone who
+    wants the faster, slightly-lower-scoring path instead."""
     parser = build_parser()
     args = parser.parse_args(["caption", "--image", "foo.jpg"])
     config = _build_config(args)
-    assert config.enable_segmentation is False
+    assert config.enable_segmentation is True
     assert config.enable_object_detection is False
 
 
@@ -121,7 +122,7 @@ CASES = [
     test_build_config_overrides_backend,
     test_build_config_defaults_to_configs_own_default,
     test_build_config_disables_detr_on_skip_flag,
-    test_build_config_leaves_detr_disabled_by_default,
+    test_build_config_leaves_defaults_by_default,
     test_build_config_overrides_coco_paths,
     test_build_config_defaults_to_configs_own_coco_paths,
     test_build_config_overrides_chroma_db_dir,

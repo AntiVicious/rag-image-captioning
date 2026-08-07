@@ -1,21 +1,29 @@
 """
-Index quantization: memory saved vs. retrieval-quality lost.
+Precision robustness of the retrieval ranking under float16/int8 rounding --
+NOT a measured memory-savings result, despite an earlier version of this
+script's output implying it was.
 
-The 591,753-embedding train2017-scale index (see the scale-test section of
-the walkthrough doc / README) is ~1.2GB of float32 vectors before any
-quantization. This measures what float16 and int8 scalar quantization
-actually cost in retrieval quality, using each quantized representation's
-OWN top-k agreement with the float32 ground-truth ranking as the metric --
-not a proxy, a direct measurement: for N sampled query embeddings, brute-
-force cosine search the full index in float32 (ground truth) and in each
-quantized representation (dequantized back to float32 for a fair, common
-comparison space), then report what fraction of the float32 top-k survives
-in the quantized top-k.
+What this DOES measure, validly: for N query embeddings (rows of the index
+itself, with the query's own row excluded from its own candidate search so
+a trivial self-match doesn't inflate the top-k overlap by one guaranteed
+free slot), brute-force cosine search in float32 (ground truth) vs. each
+quantized-then-dequantized representation, and report what fraction of the
+float32 top-k survives in the quantized top-k.
 
-ChromaDB's own HNSW index doesn't expose a quantization knob directly, so
-this operates on the raw embeddings fetched out of the collection -- it
-measures what quantizing the VECTORS costs, independent of any particular
-ANN index implementation built on top of them.
+What this does NOT measure: any real memory saved. Checked against current
+docs/community reporting rather than assumed: ChromaDB's HNSW index (via
+its hnswlib fork) stores vectors as float32 internally and has no native
+scalar/product quantization option -- feeding it float16-rounded values
+would not change what it stores or how much RAM/disk it uses, since it
+re-expands everything to float32 regardless. The "memory saved" figures
+below are the THEORETICAL bytes-per-element arithmetic on arrays pulled
+OUT of ChromaDB into numpy for this experiment, not something achievable
+by quantizing the live collection. The valid finding here is narrower and
+still real: retrieval ranking is robust to float16 rounding (and, to a
+lesser extent, int8 rounding) -- realizing that as an actual memory win
+would require swapping to a vector store that supports on-disk
+quantization (e.g. Qdrant's scalar quantization), which this project does
+not do.
 
 Usage:
     python scripts/quantize_index.py --chroma-db-dir /app/chroma_db_scale_test \
@@ -107,33 +115,38 @@ def main():
     queries_f32 = embeddings_f32[query_rows]
 
     print(f"\nBrute-force top-{args.k} search, N={len(query_rows)} queries, against all {n} embeddings...")
+    print("(each query's own row is excluded from its own candidate search -- queries ARE index rows here, "
+          "and leaving self-matches in would guarantee 1/k of the overlap 'for free' regardless of how good "
+          "or bad the quantization is, inflating every recall number by a fixed, uninformative floor)")
 
-    def top_k_indices(query_matrix, target_matrix, k):
+    def top_k_indices(query_matrix, target_matrix, k, exclude_rows=None):
         # cosine similarity via matmul (both sides already unit-normalised)
         sims = query_matrix @ target_matrix.T
+        if exclude_rows is not None:
+            sims[np.arange(len(exclude_rows)), exclude_rows] = -np.inf
         # argpartition for speed, then sort just the top-k
         part = np.argpartition(-sims, kth=k, axis=1)[:, :k]
         row_idx = np.arange(sims.shape[0])[:, None]
         order = np.argsort(-sims[row_idx, part], axis=1)
         return part[row_idx, order]
 
-    gt_idx = top_k_indices(queries_f32, embeddings_f32, args.k)
+    gt_idx = top_k_indices(queries_f32, embeddings_f32, args.k, exclude_rows=query_rows)
 
     embeddings_f16 = quantize_float16(embeddings_f32)
     queries_f16 = quantize_float16(queries_f32)
-    f16_idx = top_k_indices(queries_f16, embeddings_f16, args.k)
+    f16_idx = top_k_indices(queries_f16, embeddings_f16, args.k, exclude_rows=query_rows)
     f16_recall = recall_at_k(gt_idx, f16_idx, args.k)
 
     embeddings_i8, _ = quantize_int8(embeddings_f32)
     queries_i8, _ = quantize_int8(queries_f32)
-    i8_idx = top_k_indices(queries_i8, embeddings_i8, args.k)
+    i8_idx = top_k_indices(queries_i8, embeddings_i8, args.k, exclude_rows=query_rows)
     i8_recall = recall_at_k(gt_idx, i8_idx, args.k)
 
-    print(f"\n=== Recall@{args.k} of quantized search vs. float32 ground truth ===")
-    print(f"  float16: {f16_recall:.4f}  ({100 * (1 - f16_recall):.2f}% of top-{args.k} lost, "
-          f"{100 * (1 - bytes_f16 / bytes_f32):.0f}% memory saved)")
-    print(f"  int8:    {i8_recall:.4f}  ({100 * (1 - i8_recall):.2f}% of top-{args.k} lost, "
-          f"{100 * (1 - bytes_int8 / bytes_f32):.0f}% memory saved)")
+    print(f"\n=== Recall@{args.k} of quantized ranking vs. float32 ranking (self-matches excluded) ===")
+    print(f"  float16: {f16_recall:.4f}  ({100 * (1 - f16_recall):.2f}% of top-{args.k} ranking changed)")
+    print(f"  int8:    {i8_recall:.4f}  ({100 * (1 - i8_recall):.2f}% of top-{args.k} ranking changed)")
+    print(f"\nTheoretical bytes-per-element memory (NOT achievable in ChromaDB -- see module docstring):")
+    print(f"  float32: {bytes_f32 / 1e6:.1f} MB   float16: {bytes_f16 / 1e6:.1f} MB   int8: {bytes_int8 / 1e6:.1f} MB")
 
     with open(args.out, "w") as f:
         json.dump(
@@ -142,8 +155,13 @@ def main():
                 "dim": d,
                 "num_queries": len(query_rows),
                 "k": args.k,
-                "memory_mb": {"float32": bytes_f32 / 1e6, "float16": bytes_f16 / 1e6, "int8": bytes_int8 / 1e6},
-                "recall_vs_float32": {"float16": f16_recall, "int8": i8_recall},
+                "self_matches_excluded": True,
+                "theoretical_memory_mb_not_achievable_in_chromadb": {
+                    "float32": bytes_f32 / 1e6,
+                    "float16": bytes_f16 / 1e6,
+                    "int8": bytes_int8 / 1e6,
+                },
+                "ranking_recall_vs_float32": {"float16": f16_recall, "int8": i8_recall},
             },
             f,
             indent=2,

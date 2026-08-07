@@ -36,15 +36,20 @@ class Config:
     default_top_k: int = 5
 
     # Advanced preprocessing (segmentation / object detection crops)
-    # Default OFF: the ablation in scripts/evaluate.py (see the walkthrough
-    # doc / README) shows retrieval-only-with-top1-selection beats every
-    # crop-augmented top1 config on BLEU-4/METEOR/ROUGE-L/CIDEr/CLIPScore, at
-    # a fraction of the latency (DETR is ~90% of per-image wall time once
-    # crops are on). With selection_mode="medoid" the picture flips --
-    # +segmentation beats retrieval-only there -- so crops are default-off
-    # for LATENCY, not because they never help: flip on explicitly when
-    # latency isn't the constraint (see results/selection_strategy_ablation.csv).
-    enable_segmentation: bool = False
+    # enable_segmentation defaults ON: under selection_mode="medoid" (the
+    # default below), +segmentation is the single best-scoring config
+    # measured in this project (CIDEr 0.537 vs retrieval-only's 0.486 --
+    # see results/selection_strategy_ablation.csv) -- shipping the config
+    # the data actually recommends, not the one an earlier (top1-selection,
+    # since-superseded) measurement recommended. The real cost is latency,
+    # not quality: DETR adds ~10s/image on this CPU-only dev machine. Use
+    # `--skip-detr` (src/cli.py) / set this False directly when latency
+    # matters more than the ~11% CIDEr gain.
+    # enable_object_detection stays OFF: under medoid, adding it on top of
+    # segmentation (the "all-seven" config, CIDEr 0.512) scores WORSE than
+    # segmentation alone (0.537) -- it's not "more crops = better," it's
+    # specifically segmentation crops that earn their cost here.
+    enable_segmentation: bool = True
     enable_object_detection: bool = False
     crops_per_mode: int = 3
     min_crop_size: int = 48

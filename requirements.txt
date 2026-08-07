@@ -44,3 +44,8 @@ tqdm>=4.62.0
 # UI
 # width='stretch' (used in app.py) requires streamlit >= 1.36.
 streamlit>=1.36.0
+
+# demo_app.py (Streamlit Community Cloud entry point) downloads the demo
+# index from a public HF Dataset on first boot -- already a transitive dep
+# of transformers, listed explicitly since demo_app.py imports it directly.
+huggingface_hub>=0.20.0

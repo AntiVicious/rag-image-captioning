@@ -2,30 +2,26 @@
 
 Retrieval-Augmented Generation image captioning: CLIP embeddings + ChromaDB retrieval over COCO captions. Optional DETR segmentation/object-detection crops decompose an image into sub-regions before retrieval; optional BLIP conditions a generated caption on the retrieved context. Built incrementally, one module at a time, each step verified by CI.
 
+**Live demo:** deployed via Streamlit Community Cloud from this repo (`demo_app.py`) — link goes here once the Streamlit Cloud deploy step (github.com sign-in required, can't be automated) is completed. The demo index (COCO val2017 + Indian-context images) is hosted separately as a public HF Dataset ([AntiVicious/rag-image-captioning144-index](https://huggingface.co/datasets/AntiVicious/rag-image-captioning144-index)) and downloaded on first boot, since Community Cloud's free tier can't run the Docker-based full app. The demo defaults to retrieval-only for stability (~1GB RAM limit); the real shipped default (medoid + segmentation crops, below) needs more RAM than the free host offers — reachable via a sidebar toggle in the demo, or by running this repo locally with Docker.
+
 ## The finding
 
-The obvious design for this kind of system is "decompose the image with DETR, retrieve context per crop, aggregate everything, maybe generate a final caption with an LLM on top." I built that, then measured it against the simple version — CLIP on the whole image, no crops, no LLM — on a held-out split of COCO val2017 (N=200, output length held constant across configs so BLEU/METEOR/ROUGE-L/CIDEr aren't just measuring verbosity).
+**How you consume a retrieved candidate pool matters as much as how you retrieve it — a claim that generalizes past this one system to RAG architectures broadly.** N=200, held-out split of COCO val2017, output length held constant across every cell (full table and reproduction commands in `results/README.md`):
 
-| Config | BLEU-4 | METEOR | ROUGE-L | CIDEr | CLIPScore | s/image |
-|---|---|---|---|---|---|---|
-| generic-floor (no retrieval, fixed caption) | 0.021 | 0.067 | 0.322 | 0.009 | 0.543 | 0.00 |
-| **retrieval-only** (CLIP on the whole image, no crops) | **0.098** | **0.160** | **0.352** | **0.469** | **0.672** | 0.28 |
-| + segmentation crops | 0.083 | 0.157 | 0.351 | 0.422 | 0.637 | 10.43 |
-| + object-detection crops | 0.087 | 0.152 | 0.336 | 0.406 | 0.647 | 2.75 |
-| + both ("all-seven" variants/image) | 0.074 | 0.151 | 0.337 | 0.395 | 0.634 | 11.87 |
+| Selection → | top1 (nearest-neighbor) | medoid (consensus) |
+|---|---|---|
+| no crops | 0.469 CIDEr, 0.28s/image | 0.486 CIDEr, 0.47s/image |
+| **+ segmentation crops** | 0.422 CIDEr, 10.43s/image | **0.537 CIDEr, 10.46s/image** |
+| + object-detection crops | 0.406 CIDEr, 2.75s/image | 0.506 CIDEr, 3.46s/image |
+| + both crop types | 0.395 CIDEr, 11.87s/image | 0.512 CIDEr, 12.84s/image |
 
-**Under this selection strategy, retrieval-only wins on every metric, at ~42x less latency than adding both crop types.** `enable_segmentation`/`enable_object_detection` default to `False` in `src/config.py` because of this; the crop pipeline is still there for anyone who wants to reproduce or challenge the result, but it isn't what the app runs by default.
+**Shipped default: medoid selection + segmentation crops** — best score of every config measured. `Config.selection_mode="medoid"` (pick whichever retrieved candidate the *rest* of the pool agrees with, via CLIP text-embedding similarity, instead of whichever is closest to the query image — about 20 lines) and `Config.enable_segmentation=True`. `enable_object_detection` stays off — under medoid it's still worse than segmentation alone. Turn crops off (`--skip-detr` / `enable_segmentation=False`) if the ~10s/image DETR cost isn't worth an ~11% CIDEr gain for your use case; the faster path scores 0.486 CIDEr at 0.47s/image, still better than the original top1 baseline.
 
-The `generic-floor` row (a single fixed caption for every image, zero retrieval) is the actual score floor — it's what "no information" looks like on these metrics, and it's there so the other rows have something honest to be compared against, not just each other.
+Read across either row and the picture flips: under top1, crops make things *worse* — more candidates competing for "closest to the query image" dilutes the signal, and it's specifically DETR's small, single-object-zoomed crops doing the damage (a control row using six large, blind, non-DETR crops at the same variant count scores 0.479, matching/beating plain retrieval-only — see `results/README.md`). Under medoid, the same crops are additive. Neither row alone is the finding; the interaction is.
 
-*(An earlier version of this table reported CIDEr ≈ 7×10⁻¹⁰ for the crops-on config — that was a real bug, not a real result: aggregating every crop's top-k retrieved captions into one long concatenated block confounded the length-sensitive metrics with verbosity rather than quality. Fixed by holding output length constant — one best candidate per config, selected by retrieval distance — before comparing.)*
+### How this was found
 
-**But "crops hurt" turned out to be incomplete, not wrong — it was specific to how the candidates get consumed.** Two follow-up experiments (`results/selection_strategy_ablation.csv`):
-
-- **Selection strategy matters as much as the crops themselves.** The table above always picks the candidate *closest to the query image* (`--output-mode top1`). Swapping to **medoid selection** — pick the candidate most similar, on average, to the *rest* of the retrieved pool, a ~20-line consensus pick via CLIP text embeddings (`--output-mode medoid`) — flips the result: `retrieval-only` improves for free (0.469 → 0.486 CIDEr), and **`+segmentation` becomes the best config measured anywhere in this project (0.537 CIDEr)**, beating every top1 row including plain retrieval-only. Crops *do* help — top1 was just the wrong way to consume a larger candidate pool.
-- **DETR's crop *characteristics*, not "having extra crops," are what hurt under top1.** A control row with 6 blind, large (40–80%-of-image) random crops — no DETR, same variant count as all-seven — scores 0.479 CIDEr under top1, matching/beating plain retrieval-only and clearly beating DETR's crops (0.395), at 1/14th the latency. DETR's crops are typically small and zoomed to a single object, pulling captions that drift from the whole-scene gestalt a reference caption actually describes; large blind crops don't have that problem.
-
-Also measured, independently: **Recall@K on the retriever itself is 99% at K=1** (`results/recall_at_k.csv`) — CLIP+ChromaDB is reliably finding the right neighborhood; end-to-end caption quality is bounded by aggregation/selection choices and by paraphrase variance between human annotators, not by retrieval failing to find relevant images. And **quantizing the 591K-embedding scale-test index to float16 costs under 1% Recall@10 for 50% less memory** — a near-free win if this index needs to fit in a smaller footprint (`results/quantization_summary.csv`).
+This came from two separate measurements, run weeks apart, that each only tested one row of the table above and each concluded something different. First pass (top1 selection only) said "crops hurt, ship retrieval-only" — and that table also briefly reported CIDEr ≈ 7×10⁻¹⁰ for the crops-on config before a real bug (concatenating every crop's retrieved captions into one long block, confounding length-sensitive metrics with verbosity) got caught and fixed. A later, second pass testing medoid selection reversed the crop conclusion without changing the retrieval or the crops themselves — which is what prompted going back and building the full 2×4 table instead of trusting either measurement in isolation. Two smaller, cheaper checks were also run and are documented honestly in `results/README.md` including where they *didn't* hold up: a Recall@K measurement that turned out to be a self-match artifact and was retracted, and an index-quantization experiment whose "memory saved" framing turned out to be theoretical rather than achievable in ChromaDB's actual storage layer.
 
 ### Does retrieval hold up on out-of-distribution images?
 
@@ -33,7 +29,7 @@ COCO skews Western in objects, scenes, and phrasing. I sourced ~12,500 Indian-co
 
 - **Before augmentation:** Indian-context images retrieve **56% worse** than COCO images retrieve against their own distribution (real distribution shift, as expected).
 - **After augmentation:** that gap closes to **19.5% better** than COCO's own baseline.
-- **Validated against real hand-written reference captions** (not just retrieval distance) on a 20-image sample: METEOR 0.044→0.086, ROUGE-L 0.158→0.191, CIDEr 0.129→0.310, all improving after augmentation.
+- **Validated against real hand-written reference captions** (not just retrieval distance) on a 53-image sample: METEOR 0.047→0.081, ROUGE-L 0.154→0.182, CIDEr 0.113→0.288, all improving after augmentation. Grown from an initial N=20 spot-check; still short of a fully stable corpus-level sample size (see `results/README.md`).
 
 Full methodology, the two self-inflicted leakage bugs caught and fixed while measuring this, and reproduction commands are in `scripts/measure_distribution_shift_v2.py` and `scripts/audit_near_duplicates.py`.
 
@@ -113,4 +109,5 @@ Raw results backing the table above: `eval_output/eval_results_corrected_top1_v2
 - **`transformers` is pinned to `4.46.3`.** Two real, independent upstream bugs affect `DetrForSegmentation.from_pretrained("facebook/detr-resnet-50-panoptic")` outside this range:
   - `transformers` 5.x (what `>=4.35.0` auto-resolves to): loads successfully but then blows past 10GB+ RSS and gets OOM-killed — a real memory regression for this checkpoint, not just an under-provisioned VM (raising the WSL2 memory cap didn't help; peak usage scaled to match whatever ceiling was available).
   - `transformers` 4.44.0 and earlier: `safetensors_conversion.auto_conversion()` constructs `HfApi(headers=http_user_agent())`, passing a user-agent *string* where a headers *dict* is required, so `build_hf_headers()`'s `dict.update()` blows up (`ValueError: dictionary update sequence element #0 has length 1; 2 is required`). Fixed upstream in [huggingface/transformers#34010](https://github.com/huggingface/transformers/pull/34010), first shipped in `4.46.0`. `4.46.3` avoids both bugs.
-- **The Indian-context distribution-shift and hand-labeled validation numbers are N=200 / N=20 respectively.** Real, held-out, and (for the distance metric) near-duplicate-corrected, but N=20 real references is a small sample — BLEU-4 is ~0 and uninformative at that size. Scaling the hand-labeled set is open follow-up work.
+- **The Indian-context distribution-shift and hand-labeled validation numbers are N=200 / N=53 respectively.** Real, held-out, and (for the distance metric) near-duplicate-corrected, but N=53 real references is still a modest sample for a corpus-level metric like CIDEr. Scaling further toward N=150 is the clearest remaining gap in this project's evidence.
+- **Recall@K and index quantization were both re-examined and partially retracted after review** (see `results/README.md`) — an original "99% Recall@K" claim was a self-match artifact with no valid non-trivial replacement, and an original "50% memory saved, <1% recall lost" quantization claim conflated theoretical bytes-per-element arithmetic with an achievable result (ChromaDB has no native quantization) and understated the real ranking change by excluding a guaranteed self-match slot from the metric. Both sections were rewritten to report what was actually measured.

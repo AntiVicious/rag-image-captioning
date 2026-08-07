@@ -62,9 +62,11 @@ def main() -> None:
         )
         use_advanced = st.checkbox(
             "Use segmentation/object-detection crops",
-            value=False,
-            help="Off by default: the ablation in scripts/evaluate.py shows retrieval-only "
-            "beats every crop-augmented config on every metric, at a fraction of the latency.",
+            value=True,
+            help="On by default: under the default consensus (medoid) caption-selection "
+            "strategy, segmentation crops score best of every config measured -- see "
+            "results/selection_strategy_ablation.csv. Costs real latency (~10s/image on CPU "
+            "for DETR); turn off for speed.",
         )
 
         if st.button("Initialize pipeline", type="primary"):

@@ -1,4 +1,10 @@
-k,recall,hits,n
-1,0.99,198,200
-5,0.99,198,200
-10,0.99,198,200
+variant,k,recall,n,note
+baseline_unheld_out,1,0.99,200,self-match artifact -- query image's own embedding was never excluded from the index
+baseline_unheld_out,5,0.99,200,self-match artifact -- query image's own embedding was never excluded from the index
+baseline_unheld_out,10,0.99,200,self-match artifact -- query image's own embedding was never excluded from the index
+random_control,1,0.0,200,random unit-vector queries against the same unheld-out index -- confirms baseline's 99% is specifically the self-match leak, not a broken index
+random_control,5,0.0,200,random unit-vector queries against the same unheld-out index -- confirms baseline's 99% is specifically the self-match leak, not a broken index
+random_control,10,0.0,200,random unit-vector queries against the same unheld-out index -- confirms baseline's 99% is specifically the self-match leak, not a broken index
+held_out,1,0.0,200,query images fully excluded from the index (all ~5 caption rows) -- 0% by construction, no ground-truth relevant item exists to recall
+held_out,5,0.0,200,query images fully excluded from the index (all ~5 caption rows) -- 0% by construction, no ground-truth relevant item exists to recall
+held_out,10,0.0,200,query images fully excluded from the index (all ~5 caption rows) -- 0% by construction, no ground-truth relevant item exists to recall
