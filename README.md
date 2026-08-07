@@ -14,11 +14,18 @@ The obvious design for this kind of system is "decompose the image with DETR, re
 | + object-detection crops | 0.087 | 0.152 | 0.336 | 0.406 | 0.647 | 2.75 |
 | + both ("all-seven" variants/image) | 0.074 | 0.151 | 0.337 | 0.395 | 0.634 | 11.87 |
 
-**Retrieval-only wins on every metric, and costs ~42x less latency than adding both crop types.** More crop variants means more, noisier candidate captions competing for the retrieval slot — it dilutes rather than sharpens the result. `enable_segmentation`/`enable_object_detection` default to `False` in `src/config.py` because of this; the crop pipeline is still there (`--skip-detr`'s inverse, effectively) for anyone who wants to reproduce or challenge the result, but it isn't what the app runs by default.
+**Under this selection strategy, retrieval-only wins on every metric, at ~42x less latency than adding both crop types.** `enable_segmentation`/`enable_object_detection` default to `False` in `src/config.py` because of this; the crop pipeline is still there for anyone who wants to reproduce or challenge the result, but it isn't what the app runs by default.
 
 The `generic-floor` row (a single fixed caption for every image, zero retrieval) is the actual score floor — it's what "no information" looks like on these metrics, and it's there so the other rows have something honest to be compared against, not just each other.
 
 *(An earlier version of this table reported CIDEr ≈ 7×10⁻¹⁰ for the crops-on config — that was a real bug, not a real result: aggregating every crop's top-k retrieved captions into one long concatenated block confounded the length-sensitive metrics with verbosity rather than quality. Fixed by holding output length constant — one best candidate per config, selected by retrieval distance — before comparing.)*
+
+**But "crops hurt" turned out to be incomplete, not wrong — it was specific to how the candidates get consumed.** Two follow-up experiments (`results/selection_strategy_ablation.csv`):
+
+- **Selection strategy matters as much as the crops themselves.** The table above always picks the candidate *closest to the query image* (`--output-mode top1`). Swapping to **medoid selection** — pick the candidate most similar, on average, to the *rest* of the retrieved pool, a ~20-line consensus pick via CLIP text embeddings (`--output-mode medoid`) — flips the result: `retrieval-only` improves for free (0.469 → 0.486 CIDEr), and **`+segmentation` becomes the best config measured anywhere in this project (0.537 CIDEr)**, beating every top1 row including plain retrieval-only. Crops *do* help — top1 was just the wrong way to consume a larger candidate pool.
+- **DETR's crop *characteristics*, not "having extra crops," are what hurt under top1.** A control row with 6 blind, large (40–80%-of-image) random crops — no DETR, same variant count as all-seven — scores 0.479 CIDEr under top1, matching/beating plain retrieval-only and clearly beating DETR's crops (0.395), at 1/14th the latency. DETR's crops are typically small and zoomed to a single object, pulling captions that drift from the whole-scene gestalt a reference caption actually describes; large blind crops don't have that problem.
+
+Also measured, independently: **Recall@K on the retriever itself is 99% at K=1** (`results/recall_at_k.csv`) — CLIP+ChromaDB is reliably finding the right neighborhood; end-to-end caption quality is bounded by aggregation/selection choices and by paraphrase variance between human annotators, not by retrieval failing to find relevant images. And **quantizing the 591K-embedding scale-test index to float16 costs under 1% Recall@10 for 50% less memory** — a near-free win if this index needs to fit in a smaller footprint (`results/quantization_summary.csv`).
 
 ### Does retrieval hold up on out-of-distribution images?
 
@@ -32,7 +39,7 @@ Full methodology, the two self-inflicted leakage bugs caught and fixed while mea
 
 ## Architecture
 
-One image in. CLIP encodes it (and, if enabled, DETR-derived crops). ChromaDB returns the nearest captions on file. The single best candidate is either returned as-is (`caption_backend="retrieval"`, the default — no LLM, no GPU) or handed to a small BLIP captioner as conditioning context (`caption_backend="blip"` — BLIP base, ~247M params, CPU-feasible; not BLIP-2, which needs a GPU this project doesn't assume).
+One image in. CLIP encodes it (and, if enabled, DETR-derived crops). ChromaDB returns the nearest captions on file per variant. `Config.selection_mode` picks ONE final caption out of that pool — `"medoid"` (the default: the candidate most similar, on average, to the rest of the pool, i.e. the consensus pick — the best-scoring strategy measured, see above) or `"top1"` (closest to the query image, simpler, scores a bit lower). That caption is either returned as-is (`caption_backend="retrieval"`, the default — no LLM, no GPU) or handed to a small BLIP captioner as conditioning context (`caption_backend="blip"` — BLIP base, ~247M params, CPU-feasible; not BLIP-2, which needs a GPU this project doesn't assume).
 
 ## Status
 

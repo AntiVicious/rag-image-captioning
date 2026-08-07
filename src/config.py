@@ -37,10 +37,13 @@ class Config:
 
     # Advanced preprocessing (segmentation / object detection crops)
     # Default OFF: the ablation in scripts/evaluate.py (see the walkthrough
-    # doc / README) shows retrieval-only beats every crop-augmented config
-    # on BLEU-4/METEOR/ROUGE-L/CIDEr/CLIPScore, at a fraction of the latency
-    # (DETR is ~90% of per-image wall time once crops are on). Flip these on
-    # explicitly only when specifically exercising the crop-retrieval path.
+    # doc / README) shows retrieval-only-with-top1-selection beats every
+    # crop-augmented top1 config on BLEU-4/METEOR/ROUGE-L/CIDEr/CLIPScore, at
+    # a fraction of the latency (DETR is ~90% of per-image wall time once
+    # crops are on). With selection_mode="medoid" the picture flips --
+    # +segmentation beats retrieval-only there -- so crops are default-off
+    # for LATENCY, not because they never help: flip on explicitly when
+    # latency isn't the constraint (see results/selection_strategy_ablation.csv).
     enable_segmentation: bool = False
     enable_object_detection: bool = False
     crops_per_mode: int = 3
@@ -51,6 +54,21 @@ class Config:
     object_detection_model: str = "facebook/detr-resnet-50"
     captions_per_crop: int = 3
     aggregate_captions: bool = True
+
+    # How RAGRetriever picks a final caption out of the retrieved candidate
+    # pool (src/caption_selection.py):
+    #   "medoid" -> consensus pick: the candidate most similar, on average, to
+    #               the rest of the pool (CLIP text-embedding similarity).
+    #               Empirically the best-scoring strategy measured (see
+    #               results/selection_strategy_ablation.csv) -- the default.
+    #   "top1"   -> the candidate closest to the query image (lowest ChromaDB
+    #               distance). Simpler, no extra model call, but scores lower.
+    #   "aggregated" -> legacy behavior: concatenate/dedupe every candidate
+    #               via aggregate_captions() instead of picking one. Kept for
+    #               backward compatibility; not recommended (this is the
+    #               concatenation that caused the original CIDEr collapse
+    #               bug when output length wasn't held constant).
+    selection_mode: str = "medoid"
 
     # Caption generation backend:
     #   "retrieval" -> aggregated retrieved captions ARE the output (no LLM, no GPU needed)

@@ -58,6 +58,7 @@ from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.caption_aggregation import aggregate_captions  # noqa: E402
+from src.caption_selection import select_medoid, select_top1  # noqa: E402
 from src.config import Config  # noqa: E402
 from src.database import DatabaseManager  # noqa: E402
 from src.image_preprocessing import ImagePreprocessor  # noqa: E402
@@ -135,33 +136,6 @@ def clip_score(image_embedding, caption, model_manager):
     text_embedding = model_manager.encode_text([caption])
     cos = F.cosine_similarity(image_embedding, text_embedding).item()
     return CLIPSCORE_WEIGHT * max(cos, 0.0)
-
-
-def medoid_caption(documents_per_variant, model_manager):
-    """Pick the single retrieved caption most similar, on average, to every
-    other retrieved candidate -- the consensus pick, as opposed to top1's
-    "closest to the query image" or aggregated's "concatenate everything."
-    The intuition: retrieval distance ranks candidates by similarity to the
-    QUERY IMAGE, but the single nearest neighbour can still be an outlier
-    caption (oddly phrased, mislabeled); a candidate that most of the OTHER
-    candidates also agree with is a cheap proxy for "typical/representative
-    of this image," which may be more robust to that one-bad-neighbour case.
-    Ties (including a pool of size 1) fall back to the first candidate."""
-    candidates = [d for docs in documents_per_variant for d in docs]
-    if not candidates:
-        return ""
-    seen = set()
-    unique_candidates = [c for c in candidates if not (c in seen or seen.add(c))]
-    if len(unique_candidates) == 1:
-        return unique_candidates[0]
-
-    embeddings = model_manager.encode_text(unique_candidates)  # (n, d), already normalised
-    sim_matrix = embeddings @ embeddings.T  # cosine, since normalised
-    n = len(unique_candidates)
-    sim_matrix.fill_diagonal_(0.0)
-    mean_sim = sim_matrix.sum(dim=1) / (n - 1)
-    best_idx = int(mean_sim.argmax().item())
-    return unique_candidates[best_idx]
 
 
 def get_random_crops(image, n, seed_key):
@@ -244,17 +218,9 @@ def instrumented_retrieve(
     t_agg0 = time.perf_counter()
     if output_mode == "top1":
         # Global best candidate across every variant queried, by distance.
-        # chromadb's per-variant results are already distance-sorted
-        # ascending, so only each variant's first candidate can possibly win.
-        best_doc, best_dist = None, None
-        for docs, dists in zip(documents_per_variant, distances_per_variant):
-            if not docs:
-                continue
-            if best_dist is None or dists[0] < best_dist:
-                best_dist, best_doc = dists[0], docs[0]
-        caption = best_doc or ""
+        caption = select_top1(documents_per_variant, distances_per_variant)
     elif output_mode == "medoid":
-        caption = medoid_caption(documents_per_variant, model_manager)
+        caption = select_medoid(documents_per_variant, model_manager)
     else:
         blocks = [" ".join(docs) for docs in documents_per_variant]
         caption = aggregate_captions(blocks)
