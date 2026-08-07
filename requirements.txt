@@ -1,11 +1,17 @@
-# Pinned exactly: newer torch releases (confirmed through 2.13.0) ship a
-# Windows CPU wheel whose native c10.dll fails to load ("OSError: [WinError
-# 1114] A dynamic link library (DLL) initialization routine failed") on at
-# least one real Windows dev machine, even with the VC++ 2015-2022
-# Redistributable already installed. 2.5.1/0.20.1 is a confirmed-working
-# pair on that machine; unpin only after verifying newer releases on Windows.
-torch==2.5.1
-torchvision==0.20.1
+# torch/torchvision left unpinned rather than exact-pinned to 2.5.1/0.20.1:
+# that exact pair was chosen to dodge a Windows-only native c10.dll load
+# failure on one real dev machine ("OSError: [WinError 1114]", reproduced
+# through 2.13.0) -- but an exact pin also means NO wheel exists at all for
+# a Python version released after the pin (confirmed the hard way: Streamlit
+# Community Cloud defaults to whatever Python it currently ships, which has
+# outpaced 2.5.1's built wheels entirely -- "no wheels with a matching
+# Python ABI tag" on deploy). Left open so pip/uv can resolve whatever
+# actually has wheels for the Python this ends up running under. If the
+# Windows DLL bug resurfaces on a specific newer version, pin torch==2.5.1
+# torchvision==0.20.1 locally/in Docker (both are Linux there, unaffected)
+# rather than reintroducing a global exact pin that breaks other hosts.
+torch
+torchvision
 numpy>=1.21.0
 open_clip_torch>=2.0.0
 
