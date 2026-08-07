@@ -94,6 +94,8 @@ N=200 per row, sampled uniformly across the full 12,538-image merged Indian-cont
 | Indian, after augmentation (uncorrected) | 0.127 | 0.099 | −62.1% (looks better, but leaky) |
 | **Indian, after augmentation (dedup-corrected)** | **0.270** | **0.246** | **−19.5% (real)** |
 
+**Caveat on the −19.5% figure:** even dedup-corrected, this isn't evidence Indian-context retrieval is now inherently better than COCO's — the Indian set spans a narrower target (18 Commons categories + 15 food dishes vs. COCO's 80 object categories), so higher within-category density, and a shorter average nearest-neighbor distance, is partly expected from scope alone, not just from augmentation quality.
+
 Reproduce:
 ```bash
 docker run --rm \
@@ -113,7 +115,7 @@ docker run --rm \
 
 ## Hand-labeled validation (`hand_labeled_summary.csv`)
 
-N=53 Indian-context images (20 food + 33 Commons), each hand-viewed and given a real, from-scratch reference caption — not derived from the dataset's own template/scrape captions. Scored before vs. after augmentation with the same pycocoevalcap suite as the main ablation.
+N=53 Indian-context images (20 food + 33 Commons), each hand-viewed and given a real, from-scratch reference caption — not derived from the dataset's own template/scrape captions. Scored before vs. after augmentation with the same pycocoevalcap suite as the main ablation, but against a different, Indian-context-only reference set — these scores are not comparable to the 0.395–0.537 CIDEr range in the headline selection-strategy table above, which scores COCO val2017 predictions against COCO's own references.
 
 | Metric | Before | After |
 |---|---|---|

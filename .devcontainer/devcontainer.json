@@ -6,7 +6,7 @@
     "codespaces": {
       "openFiles": [
         "README.md",
-        "demo_app.py"
+        "demo/demo_app.py"
       ]
     },
     "vscode": {
@@ -17,9 +17,9 @@
       ]
     }
   },
-  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  "updateContentCommand": "pip3 install --user -r demo/requirements.txt; echo '✅ Demo requirements installed'",
   "postAttachCommand": {
-    "server": "streamlit run demo_app.py --server.enableCORS false --server.enableXsrfProtection false"
+    "server": "streamlit run demo/demo_app.py --server.enableCORS false --server.enableXsrfProtection false"
   },
   "portsAttributes": {
     "8501": {
