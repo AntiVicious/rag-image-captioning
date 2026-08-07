@@ -18,7 +18,7 @@ import torch
 from PIL import Image
 
 from .caption_aggregation import aggregate_captions
-from .caption_selection import select_caption
+from .caption_selection import match_distance_for, select_caption
 from .config import Config
 from .database import DatabaseManager
 from .image_preprocessing import ImagePreprocessor
@@ -40,16 +40,23 @@ class RAGRetriever:
         self.db_manager = db_manager
         self.preprocessor = preprocessor
 
-    def _select(self, documents_per_variant, distances_per_variant, all_blocks) -> str:
+    def _select(self, documents_per_variant, distances_per_variant, all_blocks):
         """Turn a per-variant candidate pool into one final caption, per
         Config.selection_mode -- shared by both the basic and advanced
-        retrieval paths."""
+        retrieval paths. Returns (caption, match_distance); match_distance
+        is the ChromaDB distance of whichever candidate got selected (None
+        for the legacy "aggregated" mode, which doesn't select a single
+        candidate) -- the only confidence signal this system has, since a
+        far match means the index likely has nothing genuinely similar to
+        the query, not just an imprecise one."""
         mode = self.config.selection_mode
         if mode in ("top1", "medoid"):
-            return select_caption(documents_per_variant, distances_per_variant, mode, self.model_manager)
+            caption = select_caption(documents_per_variant, distances_per_variant, mode, self.model_manager)
+            distance = match_distance_for(documents_per_variant, distances_per_variant, caption)
+            return caption, distance
         if self.config.aggregate_captions:
-            return aggregate_captions(all_blocks)
-        return " ".join(all_blocks)
+            return aggregate_captions(all_blocks), None
+        return " ".join(all_blocks), None
 
     def retrieve(self, image: Union[str, Image.Image], top_k: int = None, use_advanced: bool = True) -> Dict:
         """Retrieve captions for an image, optionally using crop variants."""
@@ -79,8 +86,13 @@ class RAGRetriever:
         documents_per_variant = results.get("documents") or [[]]
         distances_per_variant = results.get("distances") or [[]]
         all_blocks = [" ".join(documents_per_variant[0])] if documents_per_variant else []
-        caption = self._select(documents_per_variant, distances_per_variant, all_blocks)
-        return {"aggregated_caption": caption, "variants_processed": 1, "mode": "basic"}
+        caption, match_distance = self._select(documents_per_variant, distances_per_variant, all_blocks)
+        return {
+            "aggregated_caption": caption,
+            "match_distance": match_distance,
+            "variants_processed": 1,
+            "mode": "basic",
+        }
 
     def _retrieve_advanced(self, image: Union[str, Image.Image], top_k: int) -> Dict:
         """Same result as querying each variant one at a time, but the CLIP
@@ -118,10 +130,11 @@ class RAGRetriever:
             all_blocks.append(caption)
             variant_results.append({"type": label, "caption": caption})
 
-        aggregated = self._select(documents_per_variant, distances_per_variant, all_blocks)
+        aggregated, match_distance = self._select(documents_per_variant, distances_per_variant, all_blocks)
 
         return {
             "aggregated_caption": aggregated,
+            "match_distance": match_distance,
             "variants_processed": len(variant_results),
             "variant_results": variant_results,
             "detected_objects": variants.get("detected_objects", []),

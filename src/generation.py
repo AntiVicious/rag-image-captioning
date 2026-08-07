@@ -35,6 +35,7 @@ class CaptionGenerator:
             return {
                 "generated_caption": retrieval["aggregated_caption"],
                 "retrieved_context": retrieval["aggregated_caption"],
+                "match_distance": retrieval.get("match_distance"),
                 "backend": "retrieval",
                 "variants_processed": retrieval.get("variants_processed"),
                 "detected_objects": retrieval.get("detected_objects", []),
@@ -95,6 +96,7 @@ class CaptionGenerator:
         return {
             "generated_caption": generated_caption,
             "retrieved_context": retrieval["aggregated_caption"],
+            "match_distance": retrieval.get("match_distance"),
             "backend": "blip",
             "variants_processed": retrieval.get("variants_processed"),
             "detected_objects": retrieval.get("detected_objects", []),

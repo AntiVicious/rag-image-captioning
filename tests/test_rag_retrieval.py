@@ -125,6 +125,18 @@ def test_basic_retrieval_top1_mode_picks_closest_candidate():
     result = retriever.retrieve("fake.jpg", use_advanced=False)
 
     assert result["aggregated_caption"] == "closest caption."
+    assert result["match_distance"] == 0.0
+
+
+def test_aggregated_mode_reports_no_match_distance():
+    model_manager = FakeModelManager(torch.tensor([[1.0, 0.0]]))
+    db_manager = FakeDatabaseManager([["a cat sits.", "a cat lies."]])
+    config = Config(selection_mode="aggregated")
+    retriever = RAGRetriever(config, model_manager, db_manager, FakePreprocessor())
+
+    result = retriever.retrieve("fake.jpg", use_advanced=False)
+
+    assert result["match_distance"] is None
 
 
 def test_default_selection_mode_is_medoid():
@@ -144,6 +156,10 @@ def test_basic_retrieval_medoid_mode_picks_consensus_candidate():
     result = retriever.retrieve("fake.jpg", use_advanced=False)
 
     assert result["aggregated_caption"] == "typical caption."
+    # medoid's pick isn't necessarily the closest candidate by distance --
+    # here it picked index 1 ("typical caption."), whose own distance (not
+    # index 0's) is what should be reported.
+    assert result["match_distance"] == 1.0
 
 
 def test_raises_when_clip_not_loaded():
@@ -163,6 +179,7 @@ CASES = [
     test_basic_retrieval_aggregated_mode_returns_joined_documents,
     test_advanced_retrieval_aggregated_mode_dedupes_across_variants,
     test_basic_retrieval_top1_mode_picks_closest_candidate,
+    test_aggregated_mode_reports_no_match_distance,
     test_default_selection_mode_is_medoid,
     test_basic_retrieval_medoid_mode_picks_consensus_candidate,
     test_raises_when_clip_not_loaded,

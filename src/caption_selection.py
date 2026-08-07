@@ -66,3 +66,25 @@ def select_caption(
     if mode == "medoid":
         return select_medoid(documents_per_variant, model_manager)
     raise ValueError(f"Unknown selection mode: {mode!r} (expected 'top1' or 'medoid')")
+
+
+def match_distance_for(
+    documents_per_variant: Sequence[List[str]], distances_per_variant: Sequence[List[float]], document: str
+):
+    """The ChromaDB distance reported for a specific retrieved document,
+    found by scanning the per-variant candidate lists for a match -- works
+    regardless of which strategy selected `document` (top1's own choice is
+    trivially its own distance; medoid's consensus pick isn't necessarily
+    the closest candidate, so this is the only way to know how far even the
+    WINNING candidate actually was from the query image).
+
+    This is what a confidence signal for this system has to be: retrieval-
+    based captioning has no other notion of "am I right" beyond "how close
+    was the thing I'm returning text from." A high distance here means the
+    index likely has nothing genuinely similar to the query -- the caption
+    can still be confidently wrong in that case, not just imprecise."""
+    for docs, dists in zip(documents_per_variant, distances_per_variant):
+        for doc, dist in zip(docs, dists):
+            if doc == document:
+                return dist
+    return None

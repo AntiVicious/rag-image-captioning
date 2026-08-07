@@ -59,6 +59,21 @@ from src.pipeline import Pipeline
 
 st.set_page_config(page_title="RAG Image Captioning (demo)", page_icon="🖼️", layout="wide")
 
+# Retrieval-based captioning has no other notion of "am I right" beyond "how
+# close was the nearest thing I found." Empirically checked against four
+# real, diverse photos NOT drawn from COCO/the Indian-context set (a casual
+# selfie, a terminal screenshot, a stylised anime wallpaper, an outdoor
+# chess photo) -- genuinely good matches in this index sit around 0.15-0.35;
+# all four out-of-domain probes came back at 0.47-0.86, and their captions
+# were confidently wrong (temple/monument captions for a photo of two men
+# indoors, a farmers'-protest caption for a chess photo). This index is
+# ~37.5K images (COCO val2017 scenes + Indian food/festival/temple photos)
+# -- small, and biased toward those two domains. A random personal photo
+# has real odds of landing far from anything the index actually contains,
+# and the UI should say so instead of presenting a wrong caption as if it
+# were a good one.
+LOW_CONFIDENCE_DISTANCE = 0.45
+
 
 @st.cache_resource
 def load_pipeline() -> Pipeline:
@@ -99,6 +114,16 @@ def main() -> None:
         "via Docker for that.",
         icon="ℹ️",
     )
+    st.warning(
+        "**This works best on photos similar to what the index actually contains**: everyday "
+        "COCO-style scenes (people, animals, vehicles, sports, furniture, food) or Indian "
+        "festival/temple/food photos. It's retrieval, not generation -- it can only return text "
+        "from a real match already in its ~37,500-image index, so a photo unlike anything in "
+        "that index (a selfie, a screenshot, stylised art, an activity COCO doesn't caption "
+        "often) will get a confidently wrong caption, not a vague one. The app flags this when "
+        "it detects a low-confidence match.",
+        icon="⚠️",
+    )
 
     with st.sidebar:
         st.header("Configuration")
@@ -137,8 +162,18 @@ def main() -> None:
                 try:
                     result = pipeline.caption_image(image_path, use_advanced=False)
                     st.markdown(f"**Backend:** {result['backend']}")
+                    match_distance = result.get("match_distance")
                     if result["generated_caption"]:
+                        if match_distance is not None and match_distance > LOW_CONFIDENCE_DISTANCE:
+                            st.error(
+                                f"⚠️ Low-confidence match (distance {match_distance:.2f} -- typical "
+                                f"good matches are under {LOW_CONFIDENCE_DISTANCE:.2f}). This image "
+                                "likely isn't well represented in the index; the caption below is "
+                                "probably inaccurate, not just imprecise."
+                            )
                         st.info(result["generated_caption"])
+                        if match_distance is not None:
+                            st.caption(f"Match distance: {match_distance:.3f} (lower = more confident)")
                     else:
                         st.warning(empty_caption_message())
                     with st.expander("Retrieved context"):

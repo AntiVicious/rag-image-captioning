@@ -13,6 +13,14 @@ from src.pipeline import Pipeline
 
 st.set_page_config(page_title="RAG Image Captioning", page_icon="🖼️", layout="wide")
 
+# Retrieval-based captioning has no notion of "am I right" beyond "how close
+# was the nearest match" -- see Result.match_distance (src/rag_retrieval.py).
+# Empirically, genuinely good matches against the shipped index sit around
+# 0.15-0.35; real out-of-domain probes (a selfie, a screenshot, stylised
+# art, an activity photo) came back at 0.47-0.86 with confidently wrong
+# captions, not just imprecise ones. Surface that instead of hiding it.
+LOW_CONFIDENCE_DISTANCE = 0.45
+
 
 @st.cache_resource
 def load_pipeline(caption_backend: str) -> Pipeline:
@@ -103,8 +111,18 @@ def main() -> None:
                 try:
                     result = pipeline.caption_image(image_path, use_advanced=use_advanced)
                     st.markdown(f"**Backend:** {result['backend']}")
+                    match_distance = result.get("match_distance")
                     if result["generated_caption"]:
+                        if match_distance is not None and match_distance > LOW_CONFIDENCE_DISTANCE:
+                            st.error(
+                                f"⚠️ Low-confidence match (distance {match_distance:.2f}). Retrieval-"
+                                "based captioning can only return text from a real match already in "
+                                "the index -- this image likely isn't well represented in it, so the "
+                                "caption below may be confidently wrong, not just imprecise."
+                            )
                         st.info(result["generated_caption"])
+                        if match_distance is not None:
+                            st.caption(f"Match distance: {match_distance:.3f} (lower = more confident)")
                     else:
                         st.warning(empty_caption_message())
                     with st.expander("Retrieved context"):
