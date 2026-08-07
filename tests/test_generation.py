@@ -40,11 +40,20 @@ class FakeBlip2Inputs(dict):
 
 
 class FakeBlip2Processor:
-    def __call__(self, images, text, return_tensors):
+    """Simulates BLIP (v1)'s real behavior: conditional generation echoes the
+    given text prompt verbatim as a prefix of its output (it continues the
+    text rather than replacing it) -- see src/generation.py's stripping logic."""
+
+    def __init__(self):
+        self._last_prompt = None
+
+    def __call__(self, images, return_tensors, text=None):
+        self._last_prompt = text
         return FakeBlip2Inputs({"input_ids": torch.zeros(1, 3, dtype=torch.long)})
 
     def decode(self, ids, skip_special_tokens=True):
-        return "Caption: a fake generated caption."
+        prefix = f"{self._last_prompt} " if self._last_prompt else ""
+        return f"{prefix}a fake generated caption."
 
 
 class FakeBlip2Model:

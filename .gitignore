@@ -25,6 +25,8 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Logs
+# Logs -- ad hoc `docker ... | Tee-Object -FilePath foo_log.txt` debug output,
+# not source; *.log alone doesn't cover these since they're saved as .txt
 logs/
 *.log
+*_log*.txt

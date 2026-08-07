@@ -1,0 +1,5 @@
+metric,mean_top1_distance,median_top1_distance,pct_vs_coco_baseline
+coco_baseline,0.33483563423156737,0.3374115228652954,0.0
+indian_before_augmentation,0.5220673638582229,0.5086166262626648,55.9
+indian_after_augmentation_uncorrected,0.12705877780914307,0.09907090663909912,-62.1
+indian_after_augmentation_dedup_corrected,0.26950471878051757,0.24565595388412476,-19.5

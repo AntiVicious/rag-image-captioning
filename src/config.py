@@ -36,8 +36,13 @@ class Config:
     default_top_k: int = 5
 
     # Advanced preprocessing (segmentation / object detection crops)
-    enable_segmentation: bool = True
-    enable_object_detection: bool = True
+    # Default OFF: the ablation in scripts/evaluate.py (see the walkthrough
+    # doc / README) shows retrieval-only beats every crop-augmented config
+    # on BLEU-4/METEOR/ROUGE-L/CIDEr/CLIPScore, at a fraction of the latency
+    # (DETR is ~90% of per-image wall time once crops are on). Flip these on
+    # explicitly only when specifically exercising the crop-retrieval path.
+    enable_segmentation: bool = False
+    enable_object_detection: bool = False
     crops_per_mode: int = 3
     min_crop_size: int = 48
     crop_padding: int = 10
@@ -49,9 +54,18 @@ class Config:
 
     # Caption generation backend:
     #   "retrieval" -> aggregated retrieved captions ARE the output (no LLM, no GPU needed)
-    #   "blip"      -> BLIP-2 generates the final caption from retrieved context
+    #   "blip"      -> a BLIP captioner generates the final caption, conditioned on the
+    #                  retrieved context as a text prompt
     caption_backend: str = "retrieval"
-    blip2_model_name: str = "Salesforce/blip2-opt-2.7b"
+    # Salesforce/blip2-opt-2.7b (2.7B params) was the original choice here, but is
+    # impractical on a CPU-only dev machine (multi-minute generations, ~15GB of
+    # weights) and its empty-caption output was never root-caused before this got
+    # deprioritised. Swapped for BLIP (v1) base -- ~990MB, ~247M params, genuinely
+    # usable on CPU -- which supports the same text-conditioned captioning API
+    # (image + text prompt in, caption out) this system needs. The attribute/method
+    # names in ModelManager (blip2_model, load_blip2_model, ...) are legacy and now
+    # load this model, not BLIP-2; kept as-is to avoid an unrelated rename churn.
+    blip2_model_name: str = "Salesforce/blip-image-captioning-base"
     max_new_tokens: int = 50
     num_beams: int = 3
 

@@ -47,7 +47,7 @@ def main() -> None:
     st.title("🖼️ RAG Image Captioning")
     st.markdown(
         "Upload an image to generate a caption using CLIP + ChromaDB retrieval, "
-        "optionally refined by BLIP-2."
+        "optionally refined by BLIP."
     )
 
     with st.sidebar:
@@ -56,9 +56,16 @@ def main() -> None:
             "Caption backend",
             ["retrieval", "blip"],
             index=0,
-            help="'retrieval' needs no GPU. 'blip' generates via BLIP-2 and needs GPU weights.",
+            help="'retrieval' (default) is the ablation-backed winner -- no LLM, no GPU. "
+            "'blip' additionally runs a small BLIP captioner conditioned on the retrieved "
+            "context; CPU-feasible, but not benchmarked in the ablation.",
         )
-        use_advanced = st.checkbox("Use segmentation/object-detection crops", value=True)
+        use_advanced = st.checkbox(
+            "Use segmentation/object-detection crops",
+            value=False,
+            help="Off by default: the ablation in scripts/evaluate.py shows retrieval-only "
+            "beats every crop-augmented config on every metric, at a fraction of the latency.",
+        )
 
         if st.button("Initialize pipeline", type="primary"):
             with st.spinner("Loading models and database..."):

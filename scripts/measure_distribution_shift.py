@@ -37,32 +37,41 @@ from src.image_preprocessing import ImagePreprocessor  # noqa: E402
 from src.models import ModelManager  # noqa: E402
 
 
-def prepare_held_out_index(source_db_dir, work_db_dir, coco_ann_file, coco_filenames):
-    """Copy chroma_db -> work_db_dir, then delete the sampled COCO query
-    images' own embeddings from the copy, so the COCO-vs-COCO baseline
-    can't trivially self-match (distance 0) against the very images that
-    built the index -- same leakage class scripts/evaluate.py guards
-    against, required here for the same reason."""
+def prepare_held_out_index(source_db_dir, work_db_dir, held_out_sources):
+    """Copy chroma_db -> work_db_dir, then delete every sampled query
+    image's own embeddings from the copy, so no query set can trivially
+    self-match (distance 0) against the very images that built the
+    index -- same leakage class scripts/evaluate.py guards against.
+    Must be done for EVERY query set being probed, not just one: if the
+    Indian images were themselves added to this index (the "after"
+    measurement), querying with them unheld-out finds themselves at
+    distance 0, which is a leakage artifact, not a real result.
+
+    held_out_sources: list of (ann_file, filenames) pairs to exclude.
+    """
     if os.path.exists(work_db_dir):
         shutil.rmtree(work_db_dir)
     shutil.copytree(source_db_dir, work_db_dir)
 
-    with open(coco_ann_file) as f:
-        data = json.load(f)
-    sample_ids = {int(fn.split(".")[0]) for fn in coco_filenames}
-    ids_to_delete = [
-        f"{ann['image_id']}_{ann['id']}" for ann in data["annotations"] if ann["image_id"] in sample_ids
-    ]
+    ids_to_delete = []
+    total_sample_images = 0
+    for ann_file, filenames in held_out_sources:
+        with open(ann_file) as f:
+            data = json.load(f)
+        sample_ids = {int(fn.split(".")[0]) for fn in filenames}
+        total_sample_images += len(sample_ids)
+        ids_to_delete.extend(
+            f"{ann['image_id']}_{ann['id']}" for ann in data["annotations"] if ann["image_id"] in sample_ids
+        )
 
     config = Config(chroma_db_dir=work_db_dir)
     db_manager = DatabaseManager(config)
     db_manager.initialize()
     before = db_manager.get_stats()["total_embeddings"]
-    db_manager.collection.delete(ids=ids_to_delete)
+    if ids_to_delete:
+        db_manager.collection.delete(ids=ids_to_delete)
     after = db_manager.get_stats()["total_embeddings"]
-    print(
-        f"Held-out index: {before} -> {after} embeddings after removing {len(sample_ids)} COCO query images"
-    )
+    print(f"Held-out index: {before} -> {after} embeddings after removing {total_sample_images} query images")
     return work_db_dir
 
 
@@ -124,6 +133,13 @@ def main():
     parser.add_argument("--coco-num-samples", type=int, default=200)
     parser.add_argument("--indian-img-dir", required=True)
     parser.add_argument("--indian-num-samples", type=int, default=200)
+    parser.add_argument(
+        "--indian-ann-file",
+        default=None,
+        help="Only needed if the Indian images are themselves IN --chroma-db-dir (e.g. measuring "
+        "'after' augmentation) -- excludes their own embeddings so they can't self-match at "
+        "distance 0. Omit when querying a COCO-only index the Indian images were never added to.",
+    )
     parser.add_argument("--work-db-dir", default="/tmp/chroma_db_dist_shift")
     parser.add_argument("--out", default="./distribution_shift_results.json")
     args = parser.parse_args()
@@ -133,9 +149,10 @@ def main():
     print(f"COCO sample: {len(coco_files)} images from {args.coco_img_dir}")
     print(f"Indian sample: {len(indian_files)} images from {args.indian_img_dir}")
 
-    held_out_db_dir = prepare_held_out_index(
-        args.chroma_db_dir, args.work_db_dir, args.coco_ann_file, coco_files
-    )
+    held_out_sources = [(args.coco_ann_file, coco_files)]
+    if args.indian_ann_file:
+        held_out_sources.append((args.indian_ann_file, indian_files))
+    held_out_db_dir = prepare_held_out_index(args.chroma_db_dir, args.work_db_dir, held_out_sources)
 
     config = Config(chroma_db_dir=held_out_db_dir)
     model_manager = ModelManager(config)

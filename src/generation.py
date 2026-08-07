@@ -5,8 +5,10 @@ Config.caption_backend selects the strategy:
   "retrieval" -> the aggregated retrieved captions ARE the output (no LLM,
                  no GPU needed — the default, since this project is
                  developed/tested on machines without one)
-  "blip"      -> BLIP-2 generates the final caption, conditioned on the
-                 image plus the retrieved context as a text prompt
+  "blip"      -> a BLIP captioner generates the final caption, conditioned on
+                 the image plus the retrieved context (see Config.blip2_model_name:
+                 BLIP (v1) base by default, not BLIP-2 -- BLIP-2 is impractical
+                 without a GPU)
 """
 
 from typing import Dict, Union
@@ -52,16 +54,21 @@ class CaptionGenerator:
         if self.model_manager.blip2_model is None or self.model_manager.blip2_processor is None:
             self.model_manager.load_blip2_model()
 
-        prompt = (
-            "Generate a natural, descriptive caption for this image.\n\n"
-            f"Retrieved captions from similar images: {retrieval['aggregated_caption']}\n\n"
-            "Based on what you see in the image and the retrieved context above, "
-            "generate a concise caption:"
-        )
+        # BLIP (v1) is a continuation model, not an instruction-follower like
+        # BLIP-2/OPT was: given a text prompt it CONTINUES that text rather than
+        # answering it, so the retrieved context is injected as a short seed
+        # phrase (its first clause) for the caption to continue from, not a
+        # full instructional prompt (which BLIP-2's prompting style used).
+        context = (retrieval.get("aggregated_caption") or "").strip()
+        seed = context.split(".")[0].strip() if context else ""
+        prompt = f"a photo related to: {seed}" if seed else None
 
         import torch
 
-        inputs = self.model_manager.blip2_processor(images=image, text=prompt, return_tensors="pt")
+        if prompt:
+            inputs = self.model_manager.blip2_processor(images=image, text=prompt, return_tensors="pt")
+        else:
+            inputs = self.model_manager.blip2_processor(images=image, return_tensors="pt")
         inputs = inputs.to(self.model_manager.device)
         if self.model_manager.device == "cuda" and "pixel_values" in inputs:
             # Move to device first, then cast only the float vision tensor.
@@ -80,12 +87,10 @@ class CaptionGenerator:
         generated_caption = self.model_manager.blip2_processor.decode(
             generated_ids[0], skip_special_tokens=True
         )
-        # Case-insensitive strip of a "caption:" prefix BLIP-2 sometimes
-        # echoes back. Search on the lowercased string but slice the
-        # original so casing elsewhere in the text is preserved.
-        prefix_index = generated_caption.lower().find("caption:")
-        if prefix_index != -1:
-            generated_caption = generated_caption[prefix_index + len("caption:") :].strip()
+        # BLIP echoes the conditioning prompt verbatim as a prefix of its
+        # output (it's continuing the text, not replacing it) -- strip it.
+        if prompt and generated_caption.lower().startswith(prompt.lower()):
+            generated_caption = generated_caption[len(prompt) :].strip()
 
         return {
             "generated_caption": generated_caption,

@@ -21,6 +21,7 @@ class ModelManager:
         self.device = config.device
         self.clip_model = None
         self.clip_preprocess = None
+        self.clip_tokenizer = None
         self.blip2_model = None
         self.blip2_processor = None
 
@@ -40,16 +41,22 @@ class ModelManager:
         return self.clip_model, self.clip_preprocess
 
     def load_blip2_model(self):
-        """Load and cache the BLIP-2 model plus its processor."""
+        """Load and cache the caption-generation model plus its processor.
+
+        Despite the name (kept for API stability -- see Config.blip2_model_name),
+        this loads BLIP (v1) base by default, not BLIP-2: BLIP-2 (2.7B params) is
+        impractical on a CPU-only machine, whereas BLIP base (~247M params) runs
+        real inference in seconds on CPU and supports the same text-conditioned
+        captioning call shape (image + text prompt -> caption)."""
         if self.blip2_model is not None:
             return self.blip2_model, self.blip2_processor
 
-        from transformers import Blip2ForConditionalGeneration, Blip2Processor
+        from transformers import BlipForConditionalGeneration, BlipProcessor
 
-        self.blip2_processor = Blip2Processor.from_pretrained(self.config.blip2_model_name)
+        self.blip2_processor = BlipProcessor.from_pretrained(self.config.blip2_model_name)
         # use_safetensors=True: refuse to fall back to pickle-based torch.load
         # (CVE-2025-32434) regardless of installed torch version.
-        self.blip2_model = Blip2ForConditionalGeneration.from_pretrained(
+        self.blip2_model = BlipForConditionalGeneration.from_pretrained(
             self.config.blip2_model_name,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
             use_safetensors=True,
@@ -66,3 +73,20 @@ class ModelManager:
             embedding = self.clip_model.encode_image(image_tensor)
             embedding /= embedding.norm(dim=-1, keepdim=True)
             return embedding
+
+    def encode_text(self, texts) -> torch.Tensor:
+        """Encode a list of strings into normalised CLIP text embeddings, using
+        the same backbone/checkpoint already loaded for image encoding -- this
+        keeps text and image embeddings in one consistent space, which is what
+        CLIPScore (Hessel et al. 2021, arXiv:2104.08718) needs."""
+        if self.clip_model is None:
+            raise RuntimeError("CLIP model not loaded. Call load_clip_model() first.")
+        import open_clip
+
+        if self.clip_tokenizer is None:
+            self.clip_tokenizer = open_clip.get_tokenizer(self.config.clip_model_name)
+        tokens = self.clip_tokenizer(texts).to(self.device)
+        with torch.no_grad():
+            text_features = self.clip_model.encode_text(tokens)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+            return text_features
