@@ -1,0 +1,1734 @@
+{
+  "crop_configs": [
+    "retrieval-only",
+    "segmentation",
+    "object-detection",
+    "all-seven"
+  ],
+  "selection_strategies": [
+    "top1",
+    "medoid"
+  ],
+  "images": [
+    {
+      "image_id": 5529,
+      "file": "5529.jpg",
+      "reference_captions": [
+        "A person on skis skiing down a mountain slope.",
+        "A MAN IS SKIING ON THE SNOW SLOPES",
+        "A skier is in the snow going downhill."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A man is enjoying his day of skiing, trying to stay up float. ",
+          "cider": 0.46610425665121047
+        },
+        "top1__segmentation": {
+          "caption": "A man is enjoying his day of skiing, trying to stay up float. ",
+          "cider": 0.46610425665121047
+        },
+        "top1__object-detection": {
+          "caption": "A man is enjoying his day of skiing, trying to stay up float. ",
+          "cider": 0.46610425665121047
+        },
+        "top1__all-seven": {
+          "caption": "A man is enjoying his day of skiing, trying to stay up float. ",
+          "cider": 0.46610425665121047
+        },
+        "medoid__retrieval-only": {
+          "caption": "a person skiing down a snowy hill side.",
+          "cider": 2.1315753260205907
+        },
+        "medoid__segmentation": {
+          "caption": "a person skiing down a snowy hill side.",
+          "cider": 2.1315753260205907
+        },
+        "medoid__object-detection": {
+          "caption": "A man is enjoying his day of skiing, trying to stay up float. ",
+          "cider": 0.46610425665121047
+        },
+        "medoid__all-seven": {
+          "caption": "A lone man sliding sideways downhill while on skis.",
+          "cider": 0.527511221889043
+        }
+      }
+    },
+    {
+      "image_id": 21167,
+      "file": "21167.jpg",
+      "reference_captions": [
+        "The couple are dressed up and posing for photos.",
+        "some people standing in a room in formal wear",
+        "A man and a women standing next to each other."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "a couple of people that are dressed up dancing",
+          "cider": 0.6832156986284914
+        },
+        "top1__segmentation": {
+          "caption": "Child laying down with arms extended in the air.",
+          "cider": 0.01070847473213695
+        },
+        "top1__object-detection": {
+          "caption": "a guy looking to the side and smiling",
+          "cider": 0.04219763698377345
+        },
+        "top1__all-seven": {
+          "caption": "a guy looking to the side and smiling",
+          "cider": 0.04219763698377345
+        },
+        "medoid__retrieval-only": {
+          "caption": "A black and white image of a formal occasion. ",
+          "cider": 0.2719670609301297
+        },
+        "medoid__segmentation": {
+          "caption": "Somebody is in the photograph not certain who that individual is. \n",
+          "cider": 0.015200216406441088
+        },
+        "medoid__object-detection": {
+          "caption": "a guy looking to the side and smiling",
+          "cider": 0.04219763698377345
+        },
+        "medoid__all-seven": {
+          "caption": "a guy looking to the side and smiling",
+          "cider": 0.04219763698377345
+        }
+      }
+    },
+    {
+      "image_id": 22705,
+      "file": "22705.jpg",
+      "reference_captions": [
+        "The woman in the dress is holding her drink.",
+        "A woman is standing and smiling as she holds a wine glass in front of a refrigerator.",
+        "A woman in a short black dress is holding a champagne flute and standing in front of a refrigerator."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "a woman in glasses holding a laptop on a courch",
+          "cider": 0.4610451281783846
+        },
+        "top1__segmentation": {
+          "caption": "a woman in glasses holding a laptop on a courch",
+          "cider": 0.4610451281783846
+        },
+        "top1__object-detection": {
+          "caption": "a woman in glasses holding a laptop on a courch",
+          "cider": 0.4610451281783846
+        },
+        "top1__all-seven": {
+          "caption": "a woman in glasses holding a laptop on a courch",
+          "cider": 0.4610451281783846
+        },
+        "medoid__retrieval-only": {
+          "caption": "A girl is sitting on a couch holding a laptop computer.",
+          "cider": 0.23447715036754163
+        },
+        "medoid__segmentation": {
+          "caption": "A woman sitting on the couch with her laptop in the house.",
+          "cider": 0.22503303394102275
+        },
+        "medoid__object-detection": {
+          "caption": "A woman sitting on the couch with her laptop in the house.",
+          "cider": 0.22503303394102275
+        },
+        "medoid__all-seven": {
+          "caption": "A woman sitting on the couch with her laptop in the house.",
+          "cider": 0.22503303394102275
+        }
+      }
+    },
+    {
+      "image_id": 25228,
+      "file": "25228.jpg",
+      "reference_captions": [
+        "A woman sitting on a surfboard in the ocean.",
+        "A women sits on top of an object in a body of water. ",
+        "A woman looks to her right while straddling a surfboard in the ocean."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A lone surfer trying to ride a small wave.",
+          "cider": 0.004558138833962092
+        },
+        "top1__segmentation": {
+          "caption": "A person on a surfboard riding a wave in the ocean.",
+          "cider": 1.1908443419682813
+        },
+        "top1__object-detection": {
+          "caption": "A man is surfing on a wave in the ocean.",
+          "cider": 0.6377815191284606
+        },
+        "top1__all-seven": {
+          "caption": "A person on a surfboard riding a wave in the ocean.",
+          "cider": 1.1908443419682813
+        },
+        "medoid__retrieval-only": {
+          "caption": "A man is surfing on a wave in the ocean.",
+          "cider": 0.6377815191284606
+        },
+        "medoid__segmentation": {
+          "caption": "A lone surfer trying to ride a small wave.",
+          "cider": 0.004558138833962092
+        },
+        "medoid__object-detection": {
+          "caption": "A lone surfer trying to ride a small wave.",
+          "cider": 0.004558138833962092
+        },
+        "medoid__all-seven": {
+          "caption": "A lone surfer trying to ride a small wave.",
+          "cider": 0.004558138833962092
+        }
+      }
+    },
+    {
+      "image_id": 27620,
+      "file": "27620.jpg",
+      "reference_captions": [
+        "A laptop sitting on a desk next to a chair and another computer.",
+        "The laptop was left open on the desk. ",
+        "a desk with a computer sitting on top of it "
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Chair at a desk in the corner with lamp, monitor, keyboard and mouse on top.",
+          "cider": 0.727165694170502
+        },
+        "top1__segmentation": {
+          "caption": "Chair at a desk in the corner with lamp, monitor, keyboard and mouse on top.",
+          "cider": 0.727165694170502
+        },
+        "top1__object-detection": {
+          "caption": "Chair at a desk in the corner with lamp, monitor, keyboard and mouse on top.",
+          "cider": 0.727165694170502
+        },
+        "top1__all-seven": {
+          "caption": "Chair at a desk in the corner with lamp, monitor, keyboard and mouse on top.",
+          "cider": 0.727165694170502
+        },
+        "medoid__retrieval-only": {
+          "caption": "Chair at a desk in the corner with lamp, monitor, keyboard and mouse on top.",
+          "cider": 0.727165694170502
+        },
+        "medoid__segmentation": {
+          "caption": "Three computers sit opened on top of the desk.",
+          "cider": 0.7627312681727592
+        },
+        "medoid__object-detection": {
+          "caption": "A computer on a desk next to a laptop.",
+          "cider": 2.5211078938646003
+        },
+        "medoid__all-seven": {
+          "caption": "A computer on a desk next to a laptop.",
+          "cider": 2.5211078938646003
+        }
+      }
+    },
+    {
+      "image_id": 83531,
+      "file": "83531.jpg",
+      "reference_captions": [
+        "A BBQ topped with lots of sausages sitting side by side.",
+        "There are many links of sausage on the grill.",
+        "Several rows of cooking hot dogs on a grill."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A pile of carrots for sale in an outside market. ",
+          "cider": 0.001428539641023969
+        },
+        "top1__segmentation": {
+          "caption": "A bird flies away from three others that are sitting.",
+          "cider": 0.035415290196454854
+        },
+        "top1__object-detection": {
+          "caption": "Two cooked hot dogs on a plate with parsley.",
+          "cider": 0.7521947029954608
+        },
+        "top1__all-seven": {
+          "caption": "A bird flies away from three others that are sitting.",
+          "cider": 0.035415290196454854
+        },
+        "medoid__retrieval-only": {
+          "caption": "A bunch of carrots sitting on a table.",
+          "cider": 0.032242881206443086
+        },
+        "medoid__segmentation": {
+          "caption": "three birds perched and one flying towards the viewer",
+          "cider": 0.003098033629081262
+        },
+        "medoid__object-detection": {
+          "caption": "The sausages are served with parsley on the side.",
+          "cider": 0.44074828332453075
+        },
+        "medoid__all-seven": {
+          "caption": "The sausages are served with parsley on the side.",
+          "cider": 0.44074828332453075
+        }
+      }
+    },
+    {
+      "image_id": 88848,
+      "file": "88848.jpg",
+      "reference_captions": [
+        "a couple of pictures that have some people and some fire hyrdons",
+        "Multiple pictures of fire hydrants, a woman standing near a tree, and people posing in front of a boat.",
+        "A picture collage with fire hydrants and people."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A picture of nine fire hydrants in various type color schemes. ",
+          "cider": 0.7221133289989221
+        },
+        "top1__segmentation": {
+          "caption": "A girl wearing a hat sits with her laptop.",
+          "cider": 0.002574223284440358
+        },
+        "top1__object-detection": {
+          "caption": "a woman holds an umbrella as people walk by",
+          "cider": 0.1316577451166864
+        },
+        "top1__all-seven": {
+          "caption": "A girl wearing a hat sits with her laptop.",
+          "cider": 0.002574223284440358
+        },
+        "medoid__retrieval-only": {
+          "caption": "Several different fire hydrants that have been painted various colors.",
+          "cider": 0.7452400756914856
+        },
+        "medoid__segmentation": {
+          "caption": "A man who is sitting down next to a body of water.",
+          "cider": 0.0022211282006657364
+        },
+        "medoid__object-detection": {
+          "caption": "a man that is holding a surfboard in hand",
+          "cider": 0.024381146504222462
+        },
+        "medoid__all-seven": {
+          "caption": "a man that is holding a surfboard in hand",
+          "cider": 0.024381146504222462
+        }
+      }
+    },
+    {
+      "image_id": 89648,
+      "file": "89648.jpg",
+      "reference_captions": [
+        "A crowd of people sitting down next to each other.",
+        "People using electronic devises all facing in the same direction.",
+        "People are sitting in chairs on phones and computers."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A lot if people are in the conference too\n",
+          "cider": 0.32116681242338047
+        },
+        "top1__segmentation": {
+          "caption": "A lot if people are in the conference too\n",
+          "cider": 0.32116681242338047
+        },
+        "top1__object-detection": {
+          "caption": "A lot if people are in the conference too\n",
+          "cider": 0.32116681242338047
+        },
+        "top1__all-seven": {
+          "caption": "A lot if people are in the conference too\n",
+          "cider": 0.32116681242338047
+        },
+        "medoid__retrieval-only": {
+          "caption": "people in a meeting and a lady with a very nice phone",
+          "cider": 0.1743878676884913
+        },
+        "medoid__segmentation": {
+          "caption": "A man that is sitting at a desk with a pen and laptop.",
+          "cider": 0.051204925123077484
+        },
+        "medoid__object-detection": {
+          "caption": "a person sitting in a meeting room holding their cell phone",
+          "cider": 0.08760323191481566
+        },
+        "medoid__all-seven": {
+          "caption": "A man that is sitting at a desk with a pen and laptop.",
+          "cider": 0.051204925123077484
+        }
+      }
+    },
+    {
+      "image_id": 92177,
+      "file": "92177.jpg",
+      "reference_captions": [
+        "Advertising photograph of a surf-themed birthday cake from a bakery",
+        "A birthday cake with a island design and theme.",
+        "a birthday cake decorated to look like an island with surfboards"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A two layer cake sitting on top of a table.",
+          "cider": 0.4257600957014106
+        },
+        "top1__segmentation": {
+          "caption": "A person cutting a sheet cake with a large knife.",
+          "cider": 0.4655998653567961
+        },
+        "top1__object-detection": {
+          "caption": "The cake is prepared and ready to be eaten.",
+          "cider": 0.31351972665662586
+        },
+        "top1__all-seven": {
+          "caption": "A person cutting a sheet cake with a large knife.",
+          "cider": 0.4655998653567961
+        },
+        "medoid__retrieval-only": {
+          "caption": "A two layer cake sitting on a table near candles.",
+          "cider": 0.3389870409918933
+        },
+        "medoid__segmentation": {
+          "caption": "a person holding a knife cuts into a cake ",
+          "cider": 0.3169506903803966
+        },
+        "medoid__object-detection": {
+          "caption": "A two layer cake sitting on a table near candles.",
+          "cider": 0.3389870409918933
+        },
+        "medoid__all-seven": {
+          "caption": "The cake is prepared and ready to be eaten.",
+          "cider": 0.31351972665662586
+        }
+      }
+    },
+    {
+      "image_id": 98392,
+      "file": "98392.jpg",
+      "reference_captions": [
+        "A large clock tower in the middle of a street.",
+        "A double decker bus makes its way past a tall clock tower.",
+        "A downtown clock tower at the intersection of a busy street."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Colorful clock tower, mostly red with typical European buildings in background. ",
+          "cider": 0.8173758475103012
+        },
+        "top1__segmentation": {
+          "caption": "A tiny red bird perched on a car's mirror",
+          "cider": 0.0
+        },
+        "top1__object-detection": {
+          "caption": "A little red bird standing on the side view mirror of a car.",
+          "cider": 0.01546930677440171
+        },
+        "top1__all-seven": {
+          "caption": "A tiny red bird perched on a car's mirror",
+          "cider": 0.0
+        },
+        "medoid__retrieval-only": {
+          "caption": "A colorful clock tower along a street and near apartments.",
+          "cider": 1.1938915027724342
+        },
+        "medoid__segmentation": {
+          "caption": "A bus driving in the middle of traffic.",
+          "cider": 0.6269020844295536
+        },
+        "medoid__object-detection": {
+          "caption": "A bus is traveling down the city street.",
+          "cider": 0.3444428963477799
+        },
+        "medoid__all-seven": {
+          "caption": "A bus is traveling down the city street.",
+          "cider": 0.3444428963477799
+        }
+      }
+    },
+    {
+      "image_id": 98520,
+      "file": "98520.jpg",
+      "reference_captions": [
+        "A large passenger jet sitting on top of an airport runway.",
+        "A large commercial airplane sitting on a runway",
+        "An airplane makes its way down a snowy runway."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "a red and blue plan on the runway getting ready to get passengers ",
+          "cider": 0.23061539002382694
+        },
+        "top1__segmentation": {
+          "caption": "A large jetliner sitting on top of an airport runway.",
+          "cider": 1.6873416478335326
+        },
+        "top1__object-detection": {
+          "caption": "A large airplane is ascending from the runway.",
+          "cider": 0.6838966595318432
+        },
+        "top1__all-seven": {
+          "caption": "A large jetliner sitting on top of an airport runway.",
+          "cider": 1.6873416478335326
+        },
+        "medoid__retrieval-only": {
+          "caption": "The airplane is parked on the runway in the airport.",
+          "cider": 0.8144765082676754
+        },
+        "medoid__segmentation": {
+          "caption": "A large airplane is ascending from the runway.",
+          "cider": 0.6838966595318432
+        },
+        "medoid__object-detection": {
+          "caption": "A large airplane is ascending from the runway.",
+          "cider": 0.6838966595318432
+        },
+        "medoid__all-seven": {
+          "caption": "A large airplane is ascending from the runway.",
+          "cider": 0.6838966595318432
+        }
+      }
+    },
+    {
+      "image_id": 107554,
+      "file": "107554.jpg",
+      "reference_captions": [
+        "a surf board leaning on a wheel barrel ",
+        "A surfboard leaning on a wheelbarrow in a backyard. ",
+        "A wheelbarrow sitting in a field next to a surfboard."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Snowboard atop of wooden structure next to evergreen plant.",
+          "cider": 0.037307359118875644
+        },
+        "top1__segmentation": {
+          "caption": "a couple of frisbees are stuck in a small tower",
+          "cider": 0.024370576659183296
+        },
+        "top1__object-detection": {
+          "caption": "Snowboard atop of wooden structure next to evergreen plant.",
+          "cider": 0.037307359118875644
+        },
+        "top1__all-seven": {
+          "caption": "a couple of frisbees are stuck in a small tower",
+          "cider": 0.024370576659183296
+        },
+        "medoid__retrieval-only": {
+          "caption": "Snowboard stuck in a thick collection of trees. ",
+          "cider": 0.023763954854460256
+        },
+        "medoid__segmentation": {
+          "caption": "The kitchen has a small stove in it. ",
+          "cider": 0.00868582867114233
+        },
+        "medoid__object-detection": {
+          "caption": "A bench sitting on the side of a road.",
+          "cider": 0.04559564645279583
+        },
+        "medoid__all-seven": {
+          "caption": "The kitchen has a small stove in it. ",
+          "cider": 0.00868582867114233
+        }
+      }
+    },
+    {
+      "image_id": 134322,
+      "file": "134322.jpg",
+      "reference_captions": [
+        "Kite flying between water area and building complex, probably Japan.",
+        "People congregated around a lake flying a large kite. ",
+        "Large kite flying above a well-attended waterfront event"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "a person riding a wake board on a body of water",
+          "cider": 0.3515466062468907
+        },
+        "top1__segmentation": {
+          "caption": "a man and achild are standing in a field",
+          "cider": 0.0034993303350672614
+        },
+        "top1__object-detection": {
+          "caption": "a person riding a wake board on a body of water",
+          "cider": 0.3515466062468907
+        },
+        "top1__all-seven": {
+          "caption": "a man and achild are standing in a field",
+          "cider": 0.0034993303350672614
+        },
+        "medoid__retrieval-only": {
+          "caption": "a person riding a wake board on a body of water",
+          "cider": 0.3515466062468907
+        },
+        "medoid__segmentation": {
+          "caption": "A train is coming down the tracks near a building.",
+          "cider": 0.0846852328129692
+        },
+        "medoid__object-detection": {
+          "caption": "A traffic light hanging in front of blossoming trees.",
+          "cider": 0.00033750290834237175
+        },
+        "medoid__all-seven": {
+          "caption": "A train is coming down the tracks near a building.",
+          "cider": 0.0846852328129692
+        }
+      }
+    },
+    {
+      "image_id": 150649,
+      "file": "150649.jpg",
+      "reference_captions": [
+        "Different views of a man who is skateboarding.",
+        "A person with duplicate images of himself skateboarding.",
+        "Boys in a school uniform skateboarding on a concrete ramp."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A boy on a skateboard at the skate park.",
+          "cider": 0.2060966403443693
+        },
+        "top1__segmentation": {
+          "caption": "a skateboarder in a white shirt is doing a trick",
+          "cider": 0.013586126183862925
+        },
+        "top1__object-detection": {
+          "caption": "A boy on a skateboard at the skate park.",
+          "cider": 0.2060966403443693
+        },
+        "top1__all-seven": {
+          "caption": "a skateboarder in a white shirt is doing a trick",
+          "cider": 0.013586126183862925
+        },
+        "medoid__retrieval-only": {
+          "caption": "A boy on a skateboard at the skate park.",
+          "cider": 0.2060966403443693
+        },
+        "medoid__segmentation": {
+          "caption": "a skateboarder in a white shirt is doing a trick",
+          "cider": 0.013586126183862925
+        },
+        "medoid__object-detection": {
+          "caption": "A boy on a skateboard at the skate park.",
+          "cider": 0.2060966403443693
+        },
+        "medoid__all-seven": {
+          "caption": "a skateboarder in a white shirt is doing a trick",
+          "cider": 0.013586126183862925
+        }
+      }
+    },
+    {
+      "image_id": 154000,
+      "file": "154000.jpg",
+      "reference_captions": [
+        "A small white tow truck parked to another small white tow truck.",
+        "A dump truck with a dumpster on the back",
+        "A big truck loaded with some items in the back. "
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Two commercial trucks trucks parked next to each other.",
+          "cider": 0.44252048877888706
+        },
+        "top1__segmentation": {
+          "caption": "Two trucks parked next to each other on a dirt road.",
+          "cider": 0.8592236675774405
+        },
+        "top1__object-detection": {
+          "caption": "Two trucks parked next to each other on a dirt road.",
+          "cider": 0.8592236675774405
+        },
+        "top1__all-seven": {
+          "caption": "Two trucks parked next to each other on a dirt road.",
+          "cider": 0.8592236675774405
+        },
+        "medoid__retrieval-only": {
+          "caption": "Two commercial trucks trucks parked next to each other.",
+          "cider": 0.44252048877888706
+        },
+        "medoid__segmentation": {
+          "caption": "Two commercial trucks trucks parked next to each other.",
+          "cider": 0.44252048877888706
+        },
+        "medoid__object-detection": {
+          "caption": "Two commercial trucks trucks parked next to each other.",
+          "cider": 0.44252048877888706
+        },
+        "medoid__all-seven": {
+          "caption": "Two commercial trucks trucks parked next to each other.",
+          "cider": 0.44252048877888706
+        }
+      }
+    },
+    {
+      "image_id": 186632,
+      "file": "186632.jpg",
+      "reference_captions": [
+        "A flat screen TV sitting in a living room in front of a dining room table.",
+        "A fancy bathroom has glass sinks, a chandelier, and a TV.",
+        "The large bathroom has four sinks and a chandelier."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A beautiful bathroom and a guy is in bathroom.",
+          "cider": 0.39170474212693385
+        },
+        "top1__segmentation": {
+          "caption": "A single basin bathroom sink with a granite vanity.",
+          "cider": 0.1922683827698404
+        },
+        "top1__object-detection": {
+          "caption": "A beautiful bathroom and a guy is in bathroom.",
+          "cider": 0.39170474212693385
+        },
+        "top1__all-seven": {
+          "caption": "A single basin bathroom sink with a granite vanity.",
+          "cider": 0.1922683827698404
+        },
+        "medoid__retrieval-only": {
+          "caption": "A beautiful bathroom and a guy is in bathroom.",
+          "cider": 0.39170474212693385
+        },
+        "medoid__segmentation": {
+          "caption": "a bathroom with a sink and television in it ",
+          "cider": 0.3918951813781637
+        },
+        "medoid__object-detection": {
+          "caption": "A laptop sitting in a room with a big TV.",
+          "cider": 0.5024358073435479
+        },
+        "medoid__all-seven": {
+          "caption": "a bathroom with a sink and television in it ",
+          "cider": 0.3918951813781637
+        }
+      }
+    },
+    {
+      "image_id": 201775,
+      "file": "201775.jpg",
+      "reference_captions": [
+        "A bathroom with two urinals and a sink.",
+        "White stalls installed on the walls of a men's room.",
+        "Men's restroom with toilet and urinals along tiled walls."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A green door opens into a toilet stall containing a white toilet bowl.",
+          "cider": 0.06788038150275694
+        },
+        "top1__segmentation": {
+          "caption": "A green door opens into a toilet stall containing a white toilet bowl.",
+          "cider": 0.06788038150275694
+        },
+        "top1__object-detection": {
+          "caption": "A green door opens into a toilet stall containing a white toilet bowl.",
+          "cider": 0.06788038150275694
+        },
+        "top1__all-seven": {
+          "caption": "A green door opens into a toilet stall containing a white toilet bowl.",
+          "cider": 0.06788038150275694
+        },
+        "medoid__retrieval-only": {
+          "caption": "A green door opens into a toilet stall containing a white toilet bowl.",
+          "cider": 0.06788038150275694
+        },
+        "medoid__segmentation": {
+          "caption": "a bathroom with a fancy toilet in it",
+          "cider": 0.6899188341398408
+        },
+        "medoid__object-detection": {
+          "caption": "a bathroom with a fancy toilet in it",
+          "cider": 0.6899188341398408
+        },
+        "medoid__all-seven": {
+          "caption": "a bathroom with a fancy toilet in it",
+          "cider": 0.6899188341398408
+        }
+      }
+    },
+    {
+      "image_id": 205647,
+      "file": "205647.jpg",
+      "reference_captions": [
+        "A semi truck pulling a chain of three trailers.",
+        "A huge Fed Ex truck with three different containers that the truck is pulling.",
+        "FedEx truck hauling two extra trailers driving through the desert."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A large black semi parked in a parking lot.",
+          "cider": 0.10139713289522631
+        },
+        "top1__segmentation": {
+          "caption": "Mountains can be seen through the window of a plane. ",
+          "cider": 0.09047156180429972
+        },
+        "top1__object-detection": {
+          "caption": "A large black semi parked in a parking lot.",
+          "cider": 0.10139713289522631
+        },
+        "top1__all-seven": {
+          "caption": "Mountains can be seen through the window of a plane. ",
+          "cider": 0.09047156180429972
+        },
+        "medoid__retrieval-only": {
+          "caption": "A large black truck in a parking lot",
+          "cider": 0.29695735994373984
+        },
+        "medoid__segmentation": {
+          "caption": "A very large semi truck without any load is parked.",
+          "cider": 0.3577328086701359
+        },
+        "medoid__object-detection": {
+          "caption": "A very large semi truck without any load is parked.",
+          "cider": 0.3577328086701359
+        },
+        "medoid__all-seven": {
+          "caption": "A very large semi truck without any load is parked.",
+          "cider": 0.3577328086701359
+        }
+      }
+    },
+    {
+      "image_id": 207306,
+      "file": "207306.jpg",
+      "reference_captions": [
+        "A teddy bear in jail clothes posed on top of a trash can.",
+        "A giant teddy bear sitting on a garbage can",
+        "a teddy bear dressed in prison stripes sitting on top of a trash can"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "a red bricked building with a green door and graffiti",
+          "cider": 0.0
+        },
+        "top1__segmentation": {
+          "caption": "a red bricked building with a green door and graffiti",
+          "cider": 0.0
+        },
+        "top1__object-detection": {
+          "caption": "a red bricked building with a green door and graffiti",
+          "cider": 0.0
+        },
+        "top1__all-seven": {
+          "caption": "a red bricked building with a green door and graffiti",
+          "cider": 0.0
+        },
+        "medoid__retrieval-only": {
+          "caption": "A graffiti-ridden building in an urban setting, a fire hydrant at curbside.",
+          "cider": 0.0021936275257093095
+        },
+        "medoid__segmentation": {
+          "caption": "A fire hydrant on the side of the street.",
+          "cider": 0.009450815875954054
+        },
+        "medoid__object-detection": {
+          "caption": "A stuffed teddy bear with a person in bed.",
+          "cider": 1.1811295814666396
+        },
+        "medoid__all-seven": {
+          "caption": "A fire hydrant on the side of the street.",
+          "cider": 0.009450815875954054
+        }
+      }
+    },
+    {
+      "image_id": 210299,
+      "file": "210299.jpg",
+      "reference_captions": [
+        "A little boy riding his bike and wearing a helmet",
+        "A little boy raveling down a road on a bike, with a yellow helmet on.",
+        "The boy wears a helmet while riding his bicycle."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A bike parked on the side walk and a car on the street",
+          "cider": 0.49773898033863995
+        },
+        "top1__segmentation": {
+          "caption": "A bike parked on the side walk and a car on the street",
+          "cider": 0.49773898033863995
+        },
+        "top1__object-detection": {
+          "caption": "A bike parked on the side walk and a car on the street",
+          "cider": 0.49773898033863995
+        },
+        "top1__all-seven": {
+          "caption": "A bike parked on the side walk and a car on the street",
+          "cider": 0.49773898033863995
+        },
+        "medoid__retrieval-only": {
+          "caption": "A bicycle sits parked along a busy roadside.",
+          "cider": 0.09450596288066823
+        },
+        "medoid__segmentation": {
+          "caption": "Bicycle parked by the side of busy highway on a concrete slab. ",
+          "cider": 0.07930077446813924
+        },
+        "medoid__object-detection": {
+          "caption": "A bicycle sits parked along a busy roadside.",
+          "cider": 0.09450596288066823
+        },
+        "medoid__all-seven": {
+          "caption": "A bicycle sits parked along a busy roadside.",
+          "cider": 0.09450596288066823
+        }
+      }
+    },
+    {
+      "image_id": 219440,
+      "file": "219440.jpg",
+      "reference_captions": [
+        "a cow staring into a camera standing on a field ",
+        "Here is a image of an zoo animals.",
+        "A herd of cattle standing next to a tree together."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Three cows with hairy heads laying down in a field.",
+          "cider": 0.32677767441203104
+        },
+        "top1__segmentation": {
+          "caption": "Three cows with hairy heads laying down in a field.",
+          "cider": 0.32677767441203104
+        },
+        "top1__object-detection": {
+          "caption": "Three cows with hairy heads laying down in a field.",
+          "cider": 0.32677767441203104
+        },
+        "top1__all-seven": {
+          "caption": "Three cows with hairy heads laying down in a field.",
+          "cider": 0.32677767441203104
+        },
+        "medoid__retrieval-only": {
+          "caption": "Three cows laying in a field behind a barb wired fence.",
+          "cider": 0.2808662103127272
+        },
+        "medoid__segmentation": {
+          "caption": "A cow stands in a field where other cows are lying down.",
+          "cider": 0.439421386125764
+        },
+        "medoid__object-detection": {
+          "caption": "Three cows with hairy heads laying down in a field.",
+          "cider": 0.32677767441203104
+        },
+        "medoid__all-seven": {
+          "caption": "A cow stands in a field where other cows are lying down.",
+          "cider": 0.439421386125764
+        }
+      }
+    },
+    {
+      "image_id": 230166,
+      "file": "230166.jpg",
+      "reference_captions": [
+        "A herd of sheep grazing on a green grass covered piece of land next to a forest.",
+        "A flock of sheep, some numbered grazing in a grass field.",
+        "Many sheep grazing on grass in a field. "
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "this is a group of sheep on the grass",
+          "cider": 1.1531754932249605
+        },
+        "top1__segmentation": {
+          "caption": "this is a group of sheep on the grass",
+          "cider": 1.1531754932249605
+        },
+        "top1__object-detection": {
+          "caption": "this is a group of sheep on the grass",
+          "cider": 1.1531754932249605
+        },
+        "top1__all-seven": {
+          "caption": "this is a group of sheep on the grass",
+          "cider": 1.1531754932249605
+        },
+        "medoid__retrieval-only": {
+          "caption": "a bunch of sheep are standing behind a fence",
+          "cider": 0.7345274469512176
+        },
+        "medoid__segmentation": {
+          "caption": "A sheep standing on the grass in front of a fence",
+          "cider": 1.0337234745651207
+        },
+        "medoid__object-detection": {
+          "caption": "a bunch of sheep are standing behind a fence",
+          "cider": 0.7345274469512176
+        },
+        "medoid__all-seven": {
+          "caption": "A sheep standing on the grass in front of a fence",
+          "cider": 1.0337234745651207
+        }
+      }
+    },
+    {
+      "image_id": 260657,
+      "file": "260657.jpg",
+      "reference_captions": [
+        "A worn and a new sign for the same Mexican food restaurant.",
+        "These two photographs show the old sign and the new sign of this restaurant.",
+        "Two tall signs advertising Mexican food under a cloudy sky."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Some street signs near a road with a truck.",
+          "cider": 0.34935524244462174
+        },
+        "top1__segmentation": {
+          "caption": "Adult showing little kid how to fly the kite",
+          "cider": 0.0016069168040398524
+        },
+        "top1__object-detection": {
+          "caption": "Some street signs near a road with a truck.",
+          "cider": 0.34935524244462174
+        },
+        "top1__all-seven": {
+          "caption": "Adult showing little kid how to fly the kite",
+          "cider": 0.0016069168040398524
+        },
+        "medoid__retrieval-only": {
+          "caption": "A vehicle crosses an intersection near a building and a bus stop",
+          "cider": 0.015028821005539688
+        },
+        "medoid__segmentation": {
+          "caption": "A vehicle crosses an intersection near a building and a bus stop",
+          "cider": 0.015028821005539688
+        },
+        "medoid__object-detection": {
+          "caption": "A vehicle crosses an intersection near a building and a bus stop",
+          "cider": 0.015028821005539688
+        },
+        "medoid__all-seven": {
+          "caption": "A vehicle crosses an intersection near a building and a bus stop",
+          "cider": 0.015028821005539688
+        }
+      }
+    },
+    {
+      "image_id": 262938,
+      "file": "262938.jpg",
+      "reference_captions": [
+        "Two stuffed animal dogs reading a picture book about dogs.",
+        "Stuffed animals looking a pictures of other animals in a book.",
+        "Two stuffed dogs under a blanket looking at a picture book."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A stuffed teddy bear and monkey share the picture.",
+          "cider": 0.379677212201296
+        },
+        "top1__segmentation": {
+          "caption": "three teddy bears giving each other a hug",
+          "cider": 0.05040806897185038
+        },
+        "top1__object-detection": {
+          "caption": "Three stuffed animals are sitting on a bed. ",
+          "cider": 1.0844764256110802
+        },
+        "top1__all-seven": {
+          "caption": "three teddy bears giving each other a hug",
+          "cider": 0.05040806897185038
+        },
+        "medoid__retrieval-only": {
+          "caption": "A stuffed teddy bear and monkey share the picture.",
+          "cider": 0.379677212201296
+        },
+        "medoid__segmentation": {
+          "caption": "A stuffed teddy bear and monkey share the picture.",
+          "cider": 0.379677212201296
+        },
+        "medoid__object-detection": {
+          "caption": "two stuffed animals a bear and a monkey",
+          "cider": 1.3666126438558657
+        },
+        "medoid__all-seven": {
+          "caption": "A stuffed teddy bear and monkey share the picture.",
+          "cider": 0.379677212201296
+        }
+      }
+    },
+    {
+      "image_id": 263299,
+      "file": "263299.jpg",
+      "reference_captions": [
+        "Large black train system surrounded by trees and nature.",
+        "A train rounding a corner on the tracks.",
+        "A train going around a curve near the forest."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A picture of the land, trees, and people passing by as they ride in a vehicle.",
+          "cider": 0.06687106008298696
+        },
+        "top1__segmentation": {
+          "caption": "A train is traveling quickly as a group of people look on.",
+          "cider": 0.5907416137302514
+        },
+        "top1__object-detection": {
+          "caption": "A picture of the land, trees, and people passing by as they ride in a vehicle.",
+          "cider": 0.06687106008298696
+        },
+        "top1__all-seven": {
+          "caption": "A train is traveling quickly as a group of people look on.",
+          "cider": 0.5907416137302514
+        },
+        "medoid__retrieval-only": {
+          "caption": "a vehicle is flying past a group of people",
+          "cider": 0.00036501334277411115
+        },
+        "medoid__segmentation": {
+          "caption": "A train is traveling quickly as a group of people look on.",
+          "cider": 0.5907416137302514
+        },
+        "medoid__object-detection": {
+          "caption": "A train is traveling quickly as a group of people look on.",
+          "cider": 0.5907416137302514
+        },
+        "medoid__all-seven": {
+          "caption": "A train is traveling quickly as a group of people look on.",
+          "cider": 0.5907416137302514
+        }
+      }
+    },
+    {
+      "image_id": 319617,
+      "file": "319617.jpg",
+      "reference_captions": [
+        "a hot dog on a plate next to two glasses.",
+        "a close up of a hot dog on a plate with drinks near by",
+        "A plate with a hotdog and two glasses with beverages."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "There is a hotdog sitting among many condiments.",
+          "cider": 0.34752492227349374
+        },
+        "top1__segmentation": {
+          "caption": "A hot dog is smothered with bacon, onions, and mustard.",
+          "cider": 1.094084120604446
+        },
+        "top1__object-detection": {
+          "caption": "A couple of hot dogs on a paper plate.",
+          "cider": 0.688606097379484
+        },
+        "top1__all-seven": {
+          "caption": "A couple of hot dogs on a paper plate.",
+          "cider": 0.688606097379484
+        },
+        "medoid__retrieval-only": {
+          "caption": "A hot dog that has some ketchup and mustard on it.",
+          "cider": 1.2309199130875896
+        },
+        "medoid__segmentation": {
+          "caption": "A plate of hot dog on a table with a glass",
+          "cider": 1.9581265581225895
+        },
+        "medoid__object-detection": {
+          "caption": "One apple and several oranges sit in a bowl.",
+          "cider": 0.009295095865791289
+        },
+        "medoid__all-seven": {
+          "caption": "The two hot dogs on the plate are ready to be eaten. ",
+          "cider": 0.6458462810246902
+        }
+      }
+    },
+    {
+      "image_id": 322895,
+      "file": "322895.jpg",
+      "reference_captions": [
+        "A living room that has a bunch of different couches.",
+        "A living room filled with furniture next to a window.",
+        "A living room with white walls, rectangular windows, and grey and red furniture. "
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A living room with a wooden floor filled with furniture.",
+          "cider": 1.5674260581210464
+        },
+        "top1__segmentation": {
+          "caption": "A living room with a wooden floor filled with furniture.",
+          "cider": 1.5674260581210464
+        },
+        "top1__object-detection": {
+          "caption": "A living room with a wooden floor filled with furniture.",
+          "cider": 1.5674260581210464
+        },
+        "top1__all-seven": {
+          "caption": "A living room with a wooden floor filled with furniture.",
+          "cider": 1.5674260581210464
+        },
+        "medoid__retrieval-only": {
+          "caption": "A very nice living room that is very clean.",
+          "cider": 0.5679828644921717
+        },
+        "medoid__segmentation": {
+          "caption": "a living room with some tables and couches",
+          "cider": 1.1285594539503883
+        },
+        "medoid__object-detection": {
+          "caption": "THERE IS A LIVING ROOM WITH A TABLE AND TV ",
+          "cider": 1.3559689453537276
+        },
+        "medoid__all-seven": {
+          "caption": "a living room with some tables and couches",
+          "cider": 1.1285594539503883
+        }
+      }
+    },
+    {
+      "image_id": 341681,
+      "file": "341681.jpg",
+      "reference_captions": [
+        "A tennis player lunges to return a wide serve",
+        "A tennis player trying to hit a tennis ball.",
+        "A man playing tennis on a tennis court."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A person standing on a tennis court with a racket.",
+          "cider": 1.3751112141059874
+        },
+        "top1__segmentation": {
+          "caption": "A person standing on a tennis court with a racket.",
+          "cider": 1.3751112141059874
+        },
+        "top1__object-detection": {
+          "caption": "A person standing on a tennis court with a racket.",
+          "cider": 1.3751112141059874
+        },
+        "top1__all-seven": {
+          "caption": "A person standing on a tennis court with a racket.",
+          "cider": 1.3751112141059874
+        },
+        "medoid__retrieval-only": {
+          "caption": "A man leaning over holding a tennis racket.",
+          "cider": 0.9801628083354873
+        },
+        "medoid__segmentation": {
+          "caption": "A person is ready to hit a tennis ball on a tennis court.",
+          "cider": 1.794323171369418
+        },
+        "medoid__object-detection": {
+          "caption": "A tennis ball is sitting on a tennis racket.",
+          "cider": 1.6072654842895955
+        },
+        "medoid__all-seven": {
+          "caption": "A person is ready to hit a tennis ball on a tennis court.",
+          "cider": 1.794323171369418
+        }
+      }
+    },
+    {
+      "image_id": 360137,
+      "file": "360137.jpg",
+      "reference_captions": [
+        "A person leaning up against a metal rail while holding a rainbow colored umbrella.",
+        "A person is sitting under a colorful umbrella.",
+        "A person with a rainbow umbrella looking at the ocean"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "People sitting at the beach watching the waves roll in. ",
+          "cider": 0.11224845620003807
+        },
+        "top1__segmentation": {
+          "caption": "People sitting at the beach watching the waves roll in. ",
+          "cider": 0.11224845620003807
+        },
+        "top1__object-detection": {
+          "caption": "People sitting at the beach watching the waves roll in. ",
+          "cider": 0.11224845620003807
+        },
+        "top1__all-seven": {
+          "caption": "People sitting at the beach watching the waves roll in. ",
+          "cider": 0.11224845620003807
+        },
+        "medoid__retrieval-only": {
+          "caption": "Family and friends are together at the beach.",
+          "cider": 0.10029068388012755
+        },
+        "medoid__segmentation": {
+          "caption": "Several umbrellas of different colors are hanging in the sun.",
+          "cider": 0.0016654204738810758
+        },
+        "medoid__object-detection": {
+          "caption": "People are walking in the rain holding umbrellas.",
+          "cider": 0.14405186550763946
+        },
+        "medoid__all-seven": {
+          "caption": "A multi-colored umbrella that is blocking out the sun",
+          "cider": 0.5414639840033534
+        }
+      }
+    },
+    {
+      "image_id": 397681,
+      "file": "397681.jpg",
+      "reference_captions": [
+        "A group of twenty-five squares of different photos of carrots.",
+        "A group of 20 small photos in a collage together, with each photo containing a carrot in it.",
+        "Many pictures of different turnips and turnip like foods"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A market display case filled with different colored vegetables.",
+          "cider": 0.07124707680264482
+        },
+        "top1__segmentation": {
+          "caption": "A large number of fresh vegetables have been stacked together.",
+          "cider": 0.022009237020336855
+        },
+        "top1__object-detection": {
+          "caption": "A market display case filled with different colored vegetables.",
+          "cider": 0.07124707680264482
+        },
+        "top1__all-seven": {
+          "caption": "A large number of fresh vegetables have been stacked together.",
+          "cider": 0.022009237020336855
+        },
+        "medoid__retrieval-only": {
+          "caption": "A display of healthy vegetables on a stand ",
+          "cider": 0.0022960758736076652
+        },
+        "medoid__segmentation": {
+          "caption": "A display of healthy vegetables on a stand ",
+          "cider": 0.0022960758736076652
+        },
+        "medoid__object-detection": {
+          "caption": "a plate that has some cut up vegetables on it",
+          "cider": 0.014014877426118138
+        },
+        "medoid__all-seven": {
+          "caption": "a plate that has some cut up vegetables on it",
+          "cider": 0.014014877426118138
+        }
+      }
+    },
+    {
+      "image_id": 400573,
+      "file": "400573.jpg",
+      "reference_captions": [
+        "A man biting into a doughnut with a sly look.",
+        "A man wearing glasses eating a donut. ",
+        "there is a man wearing glasses and eating a donut"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A young man with long hair taking a bite out of a full loaf of bread.",
+          "cider": 0.33955326872696767
+        },
+        "top1__segmentation": {
+          "caption": "A man peering through the handle of folding scissors, as if they were eyeglasses.",
+          "cider": 0.11735226919167006
+        },
+        "top1__object-detection": {
+          "caption": "A burger with a doughnut for the bun.",
+          "cider": 0.3782213768619618
+        },
+        "top1__all-seven": {
+          "caption": "A man peering through the handle of folding scissors, as if they were eyeglasses.",
+          "cider": 0.11735226919167006
+        },
+        "medoid__retrieval-only": {
+          "caption": "A man eating a giant piece of bread.",
+          "cider": 0.6911731756244452
+        },
+        "medoid__segmentation": {
+          "caption": "A man is holding a toothbrush and a paper bag while seated.",
+          "cider": 0.22659227627499334
+        },
+        "medoid__object-detection": {
+          "caption": "A burger with a doughnut for the bun.",
+          "cider": 0.3782213768619618
+        },
+        "medoid__all-seven": {
+          "caption": "A guy is hold up a big pastry to is mouth. ",
+          "cider": 0.006430945086979745
+        }
+      }
+    },
+    {
+      "image_id": 401250,
+      "file": "401250.jpg",
+      "reference_captions": [
+        "A person that is doing a trick in the air.",
+        "A skier dressed in white performing an aerial maneuver.",
+        "A skier performing a backflip with the sky as background"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "White suited snowboarder displaying aerial skills at ski slope.",
+          "cider": 0.10817776680319412
+        },
+        "top1__segmentation": {
+          "caption": "White suited snowboarder displaying aerial skills at ski slope.",
+          "cider": 0.10817776680319412
+        },
+        "top1__object-detection": {
+          "caption": "A snowboarder dressed in white does a jump.",
+          "cider": 0.26142238832847925
+        },
+        "top1__all-seven": {
+          "caption": "A snowboarder dressed in white does a jump.",
+          "cider": 0.26142238832847925
+        },
+        "medoid__retrieval-only": {
+          "caption": "A snowboarder dressed in white does a jump.",
+          "cider": 0.26142238832847925
+        },
+        "medoid__segmentation": {
+          "caption": "A snowboarder dressed in white does a jump.",
+          "cider": 0.26142238832847925
+        },
+        "medoid__object-detection": {
+          "caption": "A snowboarder dressed in white does a jump.",
+          "cider": 0.26142238832847925
+        },
+        "medoid__all-seven": {
+          "caption": "A person in the air on a snowboard",
+          "cider": 0.8579771475127087
+        }
+      }
+    },
+    {
+      "image_id": 426372,
+      "file": "426372.jpg",
+      "reference_captions": [
+        "A white truck with a red car sitting in it's back.",
+        "A white truck with a red car on its bed.",
+        "A specialized transport truck displays a classic car."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A yellow truck is parked on grass near a jumbo jet on display.",
+          "cider": 0.25289449817302384
+        },
+        "top1__segmentation": {
+          "caption": "a man and achild are standing in a field",
+          "cider": 0.007808299277866176
+        },
+        "top1__object-detection": {
+          "caption": "Two old fashioned buses parked on the side of the road.",
+          "cider": 0.004846627383212844
+        },
+        "top1__all-seven": {
+          "caption": "a man and achild are standing in a field",
+          "cider": 0.007808299277866176
+        },
+        "medoid__retrieval-only": {
+          "caption": "A yellow truck is parked on grass near a jumbo jet on display.",
+          "cider": 0.25289449817302384
+        },
+        "medoid__segmentation": {
+          "caption": "A truck and trailer sit behind a long bench.",
+          "cider": 0.2990289049096618
+        },
+        "medoid__object-detection": {
+          "caption": "A small older bus parked alongside a roadway and another behind it.",
+          "cider": 0.14838083648396205
+        },
+        "medoid__all-seven": {
+          "caption": "A small older bus parked alongside a roadway and another behind it.",
+          "cider": 0.14838083648396205
+        }
+      }
+    },
+    {
+      "image_id": 477805,
+      "file": "477805.jpg",
+      "reference_captions": [
+        "A man with glasses sitting in front of a laptop computer.",
+        "A man types quickly on a laptop at night.",
+        "Man using his laptop computer in a dark room "
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "Man looking at laptop playing video game in the dark",
+          "cider": 0.9217922099907017
+        },
+        "top1__segmentation": {
+          "caption": "Man looking at laptop playing video game in the dark",
+          "cider": 0.9217922099907017
+        },
+        "top1__object-detection": {
+          "caption": "Man looking at laptop playing video game in the dark",
+          "cider": 0.9217922099907017
+        },
+        "top1__all-seven": {
+          "caption": "Man looking at laptop playing video game in the dark",
+          "cider": 0.9217922099907017
+        },
+        "medoid__retrieval-only": {
+          "caption": "A man works on his laptop in the dark. ",
+          "cider": 1.929211507554038
+        },
+        "medoid__segmentation": {
+          "caption": "A man works on his laptop in the dark. ",
+          "cider": 1.929211507554038
+        },
+        "medoid__object-detection": {
+          "caption": "A man works on his laptop in the dark. ",
+          "cider": 1.929211507554038
+        },
+        "medoid__all-seven": {
+          "caption": "A man works on his laptop in the dark. ",
+          "cider": 1.929211507554038
+        }
+      }
+    },
+    {
+      "image_id": 517056,
+      "file": "517056.jpg",
+      "reference_captions": [
+        "Two women handing out cake on plates on a dining table. ",
+        "Two women stand close to a cake that is mostly gone.",
+        "Two woman are slicing and plating pieces of cake.\n"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A family of all ages gather together in a kitchen.",
+          "cider": 0.00038005829439416113
+        },
+        "top1__segmentation": {
+          "caption": "a couple of people ordering food at a bakery ",
+          "cider": 0.00043061328549727257
+        },
+        "top1__object-detection": {
+          "caption": "a person that is cutting a cake on a tasble",
+          "cider": 0.8347027931433342
+        },
+        "top1__all-seven": {
+          "caption": "a person that is cutting a cake on a tasble",
+          "cider": 0.8347027931433342
+        },
+        "medoid__retrieval-only": {
+          "caption": "A family of all ages gather together in a kitchen.",
+          "cider": 0.00038005829439416113
+        },
+        "medoid__segmentation": {
+          "caption": "A cook in the kitchen is making something very good to eat.",
+          "cider": 0.009488195566623857
+        },
+        "medoid__object-detection": {
+          "caption": "A person that is eating some food sitting down.",
+          "cider": 0.0743524435687859
+        },
+        "medoid__all-seven": {
+          "caption": "A cook in the kitchen is making something very good to eat.",
+          "cider": 0.009488195566623857
+        }
+      }
+    },
+    {
+      "image_id": 517687,
+      "file": "517687.jpg",
+      "reference_captions": [
+        "a close up of two cell phones near one another ",
+        "Two mobile devices are lying on a table.",
+        "Two cell phones of differing quality are set side by side on a table."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A PERSON HOLDING A BLACKBERRY CELL PHONE IN THEIR HAND ",
+          "cider": 0.27289561217505737
+        },
+        "top1__segmentation": {
+          "caption": "A PERSON HOLDING A BLACKBERRY CELL PHONE IN THEIR HAND ",
+          "cider": 0.27289561217505737
+        },
+        "top1__object-detection": {
+          "caption": "A PERSON HOLDING A BLACKBERRY CELL PHONE IN THEIR HAND ",
+          "cider": 0.27289561217505737
+        },
+        "top1__all-seven": {
+          "caption": "A PERSON HOLDING A BLACKBERRY CELL PHONE IN THEIR HAND ",
+          "cider": 0.27289561217505737
+        },
+        "medoid__retrieval-only": {
+          "caption": "A PERSON HOLDING A BLACKBERRY CELL PHONE IN THEIR HAND ",
+          "cider": 0.27289561217505737
+        },
+        "medoid__segmentation": {
+          "caption": "A person holding an older model of a smart phone.",
+          "cider": 0.0006499705922441618
+        },
+        "medoid__object-detection": {
+          "caption": "A person holding an older model of a smart phone.",
+          "cider": 0.0006499705922441618
+        },
+        "medoid__all-seven": {
+          "caption": "A person holding an older model of a smart phone.",
+          "cider": 0.0006499705922441618
+        }
+      }
+    },
+    {
+      "image_id": 533145,
+      "file": "533145.jpg",
+      "reference_captions": [
+        "A hand holding a Nintendo Wii game controller.",
+        "Someone holding a Wii remote towards a TV.",
+        "a person pointing a wii controller at a computer screen"
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "a closeup of buttons on a nintendo wiiremote ",
+          "cider": 0.18965878215684834
+        },
+        "top1__segmentation": {
+          "caption": "three types of microwaves on top of each other.",
+          "cider": 0.0
+        },
+        "top1__object-detection": {
+          "caption": "A chrome colored wrist watch laying near other items.",
+          "cider": 0.0
+        },
+        "top1__all-seven": {
+          "caption": "A chrome colored wrist watch laying near other items.",
+          "cider": 0.0
+        },
+        "medoid__retrieval-only": {
+          "caption": "a closeup of buttons on a nintendo wiiremote ",
+          "cider": 0.18965878215684834
+        },
+        "medoid__segmentation": {
+          "caption": "a closeup of buttons on a nintendo wiiremote ",
+          "cider": 0.18965878215684834
+        },
+        "medoid__object-detection": {
+          "caption": "The mans wrist watch is laying on the table.",
+          "cider": 0.0
+        },
+        "medoid__all-seven": {
+          "caption": "The mans wrist watch is laying on the table.",
+          "cider": 0.0
+        }
+      }
+    },
+    {
+      "image_id": 562243,
+      "file": "562243.jpg",
+      "reference_captions": [
+        "A man in a purple shirt and matching tie looking pensive.",
+        "A man wearing red shirt, tie and glasses.",
+        "A man wearing eyeglasses dressed in a shirt and tie."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A man is staring at something in his hand.",
+          "cider": 0.15932848492276375
+        },
+        "top1__segmentation": {
+          "caption": "A man wearing a shirt and a pixilated looking neck tie.",
+          "cider": 1.9114097463512176
+        },
+        "top1__object-detection": {
+          "caption": "A young man is taking a \"selfie\" of himself. ",
+          "cider": 0.09898408264693151
+        },
+        "top1__all-seven": {
+          "caption": "A young man is taking a \"selfie\" of himself. ",
+          "cider": 0.09898408264693151
+        },
+        "medoid__retrieval-only": {
+          "caption": "An extremely focused man playing with the Wii.",
+          "cider": 0.09351332138340207
+        },
+        "medoid__segmentation": {
+          "caption": "a man with a mustache is wearing a tie",
+          "cider": 1.4010674795134355
+        },
+        "medoid__object-detection": {
+          "caption": "A person with a tie and a suit.",
+          "cider": 0.9989426156728775
+        },
+        "medoid__all-seven": {
+          "caption": "A person with a tie and a suit.",
+          "cider": 0.9989426156728775
+        }
+      }
+    },
+    {
+      "image_id": 563470,
+      "file": "563470.jpg",
+      "reference_captions": [
+        "A lady bending down to put her head on a baseball bat.",
+        "a person leaning with her head on a bat ",
+        "A woman is standing outside with her head on a bat."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A person on field with a Frisbee in their hand.",
+          "cider": 0.05949670423869054
+        },
+        "top1__segmentation": {
+          "caption": "A young man playing out side with a disc.",
+          "cider": 0.22598477481972812
+        },
+        "top1__object-detection": {
+          "caption": "A person on field with a Frisbee in their hand.",
+          "cider": 0.05949670423869054
+        },
+        "top1__all-seven": {
+          "caption": "A young man playing out side with a disc.",
+          "cider": 0.22598477481972812
+        },
+        "medoid__retrieval-only": {
+          "caption": "A man has a frisbee in his hand and is standing up. ",
+          "cider": 0.08475587710197698
+        },
+        "medoid__segmentation": {
+          "caption": "The young man in jeans is throwing a Frisbee.",
+          "cider": 0.08619423590670233
+        },
+        "medoid__object-detection": {
+          "caption": "A man has a frisbee in his hand and is standing up. ",
+          "cider": 0.08475587710197698
+        },
+        "medoid__all-seven": {
+          "caption": "A young man playing out side with a disc.",
+          "cider": 0.22598477481972812
+        }
+      }
+    },
+    {
+      "image_id": 573258,
+      "file": "573258.jpg",
+      "reference_captions": [
+        "a person riding skis on a snowy slope",
+        "A teenager is on the snow with his skis.",
+        "A skier standing on a snowy mountain with trees."
+      ],
+      "configs": {
+        "top1__retrieval-only": {
+          "caption": "A person going up a snow hill on skis.",
+          "cider": 0.42810834026406885
+        },
+        "top1__segmentation": {
+          "caption": "A person cross country skis through the snow. ",
+          "cider": 0.4102715409724348
+        },
+        "top1__object-detection": {
+          "caption": "A person going up a snow hill on skis.",
+          "cider": 0.42810834026406885
+        },
+        "top1__all-seven": {
+          "caption": "A person cross country skis through the snow. ",
+          "cider": 0.4102715409724348
+        },
+        "medoid__retrieval-only": {
+          "caption": "A person going up a snow hill on skis.",
+          "cider": 0.42810834026406885
+        },
+        "medoid__segmentation": {
+          "caption": "A person riding skis down a snow covered slope.",
+          "cider": 1.0542210900301685
+        },
+        "medoid__object-detection": {
+          "caption": "A person going up a snow hill on skis.",
+          "cider": 0.42810834026406885
+        },
+        "medoid__all-seven": {
+          "caption": "A person going up a snow hill on skis.",
+          "cider": 0.42810834026406885
+        }
+      }
+    }
+  ]
+}

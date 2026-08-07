@@ -48,6 +48,7 @@ if not os.path.exists(LOCAL_CHROMA_DIR) or not os.listdir(LOCAL_CHROMA_DIR):
 
         snapshot_download(repo_id=INDEX_DATASET_REPO, repo_type="dataset", local_dir=LOCAL_CHROMA_DIR)
 
+import json
 import tempfile
 from pathlib import Path
 
@@ -58,6 +59,18 @@ from src.config import Config
 from src.pipeline import Pipeline
 
 st.set_page_config(page_title="RAG Image Captioning (demo)", page_icon="🖼️", layout="wide")
+
+_DEMO_DIR = os.path.dirname(os.path.abspath(__file__))
+GALLERY_DATA_PATH = os.path.join(_DEMO_DIR, "gallery_data.json")
+GALLERY_IMAGES_DIR = os.path.join(_DEMO_DIR, "gallery_images")
+
+CROP_LABELS = {
+    "retrieval-only": "No crops",
+    "segmentation": "Segmentation crops",
+    "object-detection": "Object-detection crops",
+    "all-seven": "Both crop types",
+}
+SELECTION_LABELS = {"top1": "top1 (nearest-neighbor)", "medoid": "medoid (consensus)"}
 
 # Retrieval-based captioning has no other notion of "am I right" beyond "how
 # close was the nearest thing I found." Empirically checked against four
@@ -90,6 +103,65 @@ def empty_caption_message() -> str:
     )
 
 
+@st.cache_data
+def load_gallery_data():
+    if not os.path.exists(GALLERY_DATA_PATH):
+        return None
+    with open(GALLERY_DATA_PATH) as f:
+        return json.load(f)
+
+
+def render_gallery() -> None:
+    gallery = load_gallery_data()
+    if gallery is None:
+        st.warning("Gallery data not found (demo/gallery_data.json is missing).")
+        return
+
+    st.markdown(
+        "40 held-out COCO val2017 images, run offline through all 8 configs this project's "
+        "ablation covers (2 selection strategies x 4 crop configs) — the same measurement "
+        "behind the headline finding in the main README. Flip the toggles below and watch the "
+        "caption change; nothing here calls a model, it's all precomputed."
+    )
+
+    col_toggles, col_result = st.columns([1, 2])
+
+    with col_toggles:
+        images = gallery["images"]
+        labels = [f"#{e['image_id']}" for e in images]
+        idx = st.selectbox("Image", options=range(len(images)), format_func=lambda i: labels[i])
+        entry = images[idx]
+
+        selection = st.radio(
+            "Selection strategy",
+            options=gallery["selection_strategies"],
+            format_func=lambda s: SELECTION_LABELS.get(s, s),
+            index=1,  # medoid -- the shipped default
+        )
+        crop_config = st.radio(
+            "Crop config",
+            options=gallery["crop_configs"],
+            format_func=lambda c: CROP_LABELS.get(c, c),
+            index=1,  # segmentation -- the shipped default
+        )
+        if selection == "medoid" and crop_config == "segmentation":
+            st.caption("This is the shipped default — the best config measured in the ablation.")
+
+    with col_result:
+        img_path = os.path.join(GALLERY_IMAGES_DIR, entry["file"])
+        st.image(Image.open(img_path), width="stretch")
+
+        config_key = f"{selection}__{crop_config}"
+        result = entry["configs"][config_key]
+        st.info(result["caption"])
+        if result.get("cider") is not None:
+            st.caption(f"CIDEr vs. real COCO references for this image: {result['cider']:.3f}")
+
+        with st.expander("Real COCO reference captions (ground truth, not model output)"):
+            for cap in entry["reference_captions"]:
+                st.write(f"- {cap}")
+
+
 def save_uploaded_file(uploaded_file) -> str:
     suffix = Path(uploaded_file.name).suffix or ".jpg"
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
@@ -99,19 +171,11 @@ def save_uploaded_file(uploaded_file) -> str:
     return tmp.name
 
 
-def main() -> None:
-    st.title("🖼️ RAG Image Captioning — demo")
-    st.markdown(
-        "CLIP + ChromaDB retrieval over COCO val2017 + ~12,500 Indian-context images "
-        "(food, festivals, temples). Full methodology, the ablation-backed default this demo "
-        "*doesn't* run (medoid selection + DETR segmentation crops -- needs more RAM than this "
-        "free host has), and every bug caught along the way: "
-        "[github.com/AntiVicious/rag-image-captioning](https://github.com/AntiVicious/rag-image-captioning)."
-    )
+def render_upload_tab() -> None:
     st.info(
         "This is the retrieval-only path (no DETR crops, no BLIP) -- lightweight enough for a "
-        "free ~1GB host. The actual best-scoring config needs more RAM; run this repo locally "
-        "via Docker for that.",
+        "free ~1GB host. The actual best-scoring config needs more RAM; see the gallery tab "
+        "for real outputs from that config, or run this repo locally via Docker.",
         icon="ℹ️",
     )
     st.warning(
@@ -180,6 +244,24 @@ def main() -> None:
                         st.write(result.get("retrieved_context", ""))
                 except Exception as e:
                     st.error(f"Captioning failed: {e}")
+
+
+def main() -> None:
+    st.title("🖼️ RAG Image Captioning — demo")
+    st.markdown(
+        "CLIP + ChromaDB retrieval over COCO val2017 + ~12,500 Indian-context images "
+        "(food, festivals, temples). Full methodology, the ablation-backed default this demo's "
+        "upload tab *doesn't* run live (medoid selection + DETR segmentation crops -- needs more "
+        "RAM than this free host has, though the gallery tab below shows its real output), and "
+        "every bug caught along the way: "
+        "[github.com/AntiVicious/rag-image-captioning](https://github.com/AntiVicious/rag-image-captioning)."
+    )
+
+    tab_gallery, tab_upload = st.tabs(["📸 Precomputed gallery", "📤 Upload your own"])
+    with tab_gallery:
+        render_gallery()
+    with tab_upload:
+        render_upload_tab()
 
 
 if __name__ == "__main__":
