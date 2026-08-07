@@ -1,17 +1,15 @@
-# torch/torchvision left unpinned rather than exact-pinned to 2.5.1/0.20.1:
-# that exact pair was chosen to dodge a Windows-only native c10.dll load
-# failure on one real dev machine ("OSError: [WinError 1114]", reproduced
-# through 2.13.0) -- but an exact pin also means NO wheel exists at all for
-# a Python version released after the pin (confirmed the hard way: Streamlit
-# Community Cloud defaults to whatever Python it currently ships, which has
-# outpaced 2.5.1's built wheels entirely -- "no wheels with a matching
-# Python ABI tag" on deploy). Left open so pip/uv can resolve whatever
-# actually has wheels for the Python this ends up running under. If the
-# Windows DLL bug resurfaces on a specific newer version, pin torch==2.5.1
-# torchvision==0.20.1 locally/in Docker (both are Linux there, unaffected)
-# rather than reintroducing a global exact pin that breaks other hosts.
-torch
-torchvision
+# Pinned exactly: newer torch releases (confirmed through 2.13.0) ship a
+# Windows CPU wheel whose native c10.dll fails to load ("OSError: [WinError
+# 1114] A dynamic link library (DLL) initialization routine failed") on at
+# least one real Windows dev machine, even with the VC++ 2015-2022
+# Redistributable already installed. 2.5.1/0.20.1 is a confirmed-working
+# pair on that machine; unpin only after verifying newer releases on Windows.
+# (This file is used by Docker/local only -- the public demo lives in
+# demo/ with its own, deliberately unpinned requirements.txt, specifically
+# so a moving-target host like Streamlit Community Cloud never forces an
+# exact pin here to be loosened again.)
+torch==2.5.1
+torchvision==0.20.1
 numpy>=1.21.0
 open_clip_torch>=2.0.0
 
@@ -35,19 +33,14 @@ Pillow>=8.3.0
 
 # BLIP-2 caption generation backend
 accelerate>=0.20.0
-# sentencepiece left unpinned for the same reason as torch/torchvision above:
-# an exact pin (was ==0.2.0, chosen because 0.2.2 crashed with a native
-# access violation on import, on the same Windows dev machine referenced
-# above -- deterministic, not an ASLR fluke; this bites even the "retrieval"
-# backend since `import open_clip` transitively imports transformers'
-# AutoTokenizer machinery, which imports sentencepiece regardless of which
-# tokenizer is actually used) also means no prebuilt wheel for a Python
-# version released after 0.2.0 shipped, and pip falling back to a from-
-# source build needs cmake/pkg-config that aren't present on Streamlit
-# Community Cloud's build image ("cmake: not found", exit 127). If the
-# Windows crash resurfaces on a specific version, pin sentencepiece==0.2.0
-# locally/in Docker (Linux, unaffected) rather than a global exact pin.
-sentencepiece
+# Pinned exactly: sentencepiece 0.2.2 (latest as of writing) crashes with a
+# native access violation on `import sentencepiece` alone on the same
+# Windows dev machine referenced above -- deterministic across repeated
+# runs, not an ASLR fluke. Also crashes indirectly: `import open_clip`
+# transitively imports transformers' AutoTokenizer machinery, which imports
+# sentencepiece, which crashes -- so this bites even the "retrieval"
+# backend (CLIP-only), not just BLIP-2. 0.2.0 is confirmed-working.
+sentencepiece==0.2.0
 
 # CLI / dataset ingestion
 tqdm>=4.62.0
@@ -55,8 +48,3 @@ tqdm>=4.62.0
 # UI
 # width='stretch' (used in app.py) requires streamlit >= 1.36.
 streamlit>=1.36.0
-
-# demo_app.py (Streamlit Community Cloud entry point) downloads the demo
-# index from a public HF Dataset on first boot -- already a transitive dep
-# of transformers, listed explicitly since demo_app.py imports it directly.
-huggingface_hub>=0.20.0

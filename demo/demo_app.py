@@ -1,30 +1,44 @@
 """
-Streamlit Community Cloud entry point -- deliberately separate from app.py.
+Streamlit Community Cloud entry point -- deliberately separate from app.py,
+in its own demo/ subdirectory with its own demo/requirements.txt.
 
-Two things are different here from the "real" shipped app, both driven by
-Community Cloud's free-tier constraints (~1GB RAM, deploys straight from
-this public GitHub repo where chroma_db/ is gitignored):
+Why a separate directory, not just a separate file: Streamlit Community
+Cloud looks for a requirements.txt next to the app's main file first. The
+root requirements.txt pins transformers==4.46.3 for a real, Linux-
+reproduced DETR-loading bug -- but that pin transitively ceilings
+tokenizers<0.21, and building an old tokenizers from source needs a Rust
+toolchain new enough for whatever Python Community Cloud currently
+defaults to, which isn't guaranteed (confirmed the hard way, twice: torch,
+then sentencepiece, then tokenizers-via-transformers all failed to build
+against Community Cloud's Python before this split). This directory's
+requirements.txt never installs transformers at all, which is safe because
+every `transformers` import in src/ (DETR loaders in image_preprocessing.py,
+the BLIP loader in models.py) is inside a lazy-loading function body, never
+at module level -- and this demo never calls those paths.
+
+What's different from the "real" shipped app, driven by Community Cloud's
+free-tier constraints (~1GB RAM; no transformers installed here at all):
 
 1. The ChromaDB index (COCO val2017 + ~12,500 Indian-context images) isn't
-   in this repo -- it's downloaded from a public HF Dataset on first boot,
-   if not already present locally.
-2. The UI defaults to retrieval-only, crops off. The actual shipped default
-   (medoid selection + segmentation crops, see src/config.py and the main
-   README) loads CLIP *and* DETR simultaneously, which this project's own
-   README already documents as needing well over 1GB RAM on a real machine
-   (the WSL2 memory-cap section) -- not a safe default for a ~1GB free
-   host. The full config is still reachable via the sidebar toggle; it's
-   just not what loads by default here, to keep the demo from crashing.
-
-Everything else (retrieval, augmentation, the ablation-backed defaults) is
-identical to app.py -- run this project locally via Docker (see the main
-README) to use the real shipped default without the free-tier RAM cap.
+   in the repo (chroma_db/ is gitignored) -- downloaded from a public HF
+   Dataset on first boot, if not already present locally.
+2. Retrieval-only, no crops, no BLIP toggle. The actual shipped default
+   (medoid selection + DETR segmentation crops, see src/config.py and the
+   main README) needs transformers/DETR and well over 1GB RAM in practice
+   (this project's own README documents that from the WSL2 memory-cap
+   section) -- neither fits a ~1GB, transformers-free free host. Run this
+   project locally via Docker (see the main README) for the real default.
 """
 
 import os
+import sys
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 
 INDEX_DATASET_REPO = "AntiVicious/rag-image-captioning144-index"
-LOCAL_CHROMA_DIR = "./chroma_db"
+LOCAL_CHROMA_DIR = os.path.join(_REPO_ROOT, "chroma_db")
 
 if not os.path.exists(LOCAL_CHROMA_DIR) or not os.listdir(LOCAL_CHROMA_DIR):
     import streamlit as st
@@ -47,9 +61,10 @@ st.set_page_config(page_title="RAG Image Captioning (demo)", page_icon="🖼️"
 
 
 @st.cache_resource
-def load_pipeline(caption_backend: str, enable_segmentation: bool) -> Pipeline:
-    config = Config(caption_backend=caption_backend, chroma_db_dir=LOCAL_CHROMA_DIR)
-    config.enable_segmentation = enable_segmentation
+def load_pipeline() -> Pipeline:
+    config = Config(caption_backend="retrieval", chroma_db_dir=LOCAL_CHROMA_DIR)
+    config.enable_segmentation = False
+    config.enable_object_detection = False
     return Pipeline(config)
 
 
@@ -73,33 +88,26 @@ def main() -> None:
     st.title("🖼️ RAG Image Captioning — demo")
     st.markdown(
         "CLIP + ChromaDB retrieval over COCO val2017 + ~12,500 Indian-context images "
-        "(food, festivals, temples). Full methodology, the ablation behind these defaults, "
-        "and every bug caught along the way: "
+        "(food, festivals, temples). Full methodology, the ablation-backed default this demo "
+        "*doesn't* run (medoid selection + DETR segmentation crops -- needs more RAM than this "
+        "free host has), and every bug caught along the way: "
         "[github.com/AntiVicious/rag-image-captioning](https://github.com/AntiVicious/rag-image-captioning)."
     )
     st.info(
-        "This free-tier host has ~1GB RAM, too little to safely run this project's actual "
-        "shipped default (medoid selection + DETR segmentation crops, the best-scoring config "
-        "measured). Retrieval-only is on by default here for stability; turn on crops below to "
-        "try the better-scoring config anyway -- it may be slow or fail on this host's RAM limit.",
+        "This is the retrieval-only path (no DETR crops, no BLIP) -- lightweight enough for a "
+        "free ~1GB host. The actual best-scoring config needs more RAM; run this repo locally "
+        "via Docker for that.",
         icon="ℹ️",
     )
 
     with st.sidebar:
         st.header("Configuration")
-        backend = st.selectbox("Caption backend", ["retrieval", "blip"], index=0)
-        use_advanced = st.checkbox(
-            "Use segmentation crops (medoid selection) -- the actual best-scoring config, "
-            "risky on ~1GB RAM",
-            value=False,
-        )
-
+        st.caption("retrieval-only -- the only backend installed in this demo, see demo/requirements.txt")
         if st.button("Initialize pipeline", type="primary"):
-            with st.spinner("Loading models and database..."):
+            with st.spinner("Loading CLIP and the database..."):
                 try:
-                    load_pipeline(backend, use_advanced).setup()
+                    load_pipeline().setup()
                     st.session_state["initialized"] = True
-                    st.session_state["use_advanced"] = use_advanced
                     st.success("Pipeline initialized.")
                 except Exception as e:
                     st.session_state["initialized"] = False
@@ -125,11 +133,9 @@ def main() -> None:
 
         if st.button("Generate caption", type="primary"):
             with st.spinner("Captioning..."):
-                pipeline = load_pipeline(backend, st.session_state.get("use_advanced", False))
+                pipeline = load_pipeline()
                 try:
-                    result = pipeline.caption_image(
-                        image_path, use_advanced=st.session_state.get("use_advanced", False)
-                    )
+                    result = pipeline.caption_image(image_path, use_advanced=False)
                     st.markdown(f"**Backend:** {result['backend']}")
                     if result["generated_caption"]:
                         st.info(result["generated_caption"])

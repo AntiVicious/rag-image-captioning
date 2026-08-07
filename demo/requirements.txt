@@ -1,0 +1,30 @@
+# Deliberately minimal and fully decoupled from the main project's
+# requirements.txt (root), which pins transformers==4.46.3 for a real,
+# Linux-reproduced DETR-loading bug. That pin transitively ceilings
+# tokenizers<0.21, and the only tokenizers releases in that range have no
+# prebuilt wheel for whatever Python Streamlit Community Cloud currently
+# ships (a moving target -- it defaults to new Python versions fast) --
+# pip's from-source fallback then needs a Rust toolchain new enough for
+# PyO3 to target that Python, which isn't guaranteed either. Two rounds of
+# that exact failure (first torch/torchvision, then sentencepiece, then
+# tokenizers-via-transformers) were enough to conclude the fix isn't
+# "unpin the next thing that breaks" -- it's "don't install transformers
+# in the demo at all."
+#
+# This is safe because it's true, not just convenient: every `transformers`
+# import in src/ (image_preprocessing.py's DETR loaders, models.py's BLIP
+# loader) is inside a lazy-loading function body, never at module level --
+# see src/*.py's own "lazy-loaded, first-use not import-time" convention.
+# demo_app.py never calls those paths (retrieval-only, crops off), so
+# transformers is genuinely unused here, not just unimported by luck.
+#
+# No exact pins here on purpose: this demo will always run on whatever
+# Python Streamlit Community Cloud happens to default to on a given day,
+# which this project doesn't control and which changes without notice.
+streamlit
+torch
+numpy
+open_clip_torch
+chromadb
+Pillow
+huggingface_hub
