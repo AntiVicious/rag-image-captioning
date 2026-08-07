@@ -1,4 +1,4 @@
-representation,theoretical_memory_mb_not_achievable_in_chromadb,pct_theoretical_memory_saved,ranking_recall_at_10_vs_float32_self_excluded,pct_ranking_changed
-float32,204.8,0.0,1.0,0.0
-float16,102.4,50.0,0.9155,8.45
-int8,51.2,75.0,0.8775,12.25
+representation,theoretical_memory_mb_not_achievable_in_chromadb,pct_theoretical_memory_saved,top10_set_overlap_vs_float32_sibling_excluded,pct_top10_set_changed,top1_flip_rate_vs_float32,pct_top1_flipped
+float32,204.8,0.0,1.0,0.0,0.0,0.0
+float16,102.4,50.0,0.9965,0.35,0.015,1.5
+int8,51.2,75.0,0.9115,8.85,,

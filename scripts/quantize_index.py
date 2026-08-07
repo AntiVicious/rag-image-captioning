@@ -4,11 +4,29 @@ NOT a measured memory-savings result, despite an earlier version of this
 script's output implying it was.
 
 What this DOES measure, validly: for N query embeddings (rows of the index
-itself, with the query's own row excluded from its own candidate search so
-a trivial self-match doesn't inflate the top-k overlap by one guaranteed
-free slot), brute-force cosine search in float32 (ground truth) vs. each
-quantized-then-dequantized representation, and report what fraction of the
-float32 top-k survives in the quantized top-k.
+itself, with the query's own row AND every sibling row sharing its image_id
+excluded from its own candidate search -- COCO stores ~5 caption rows per
+image, ALL sharing one identical embedding, and a first version of this
+script only excluded the single sampled row, leaving the other ~4 sibling
+rows in as trivially-guaranteed top-of-list matches for both float32 and
+float16 alike; that inflated the measured agreement between the two by
+hiding real disagreement behind guaranteed-identical sibling hits), brute-
+force cosine search in float32 (ground truth) vs. each quantized-then-
+dequantized representation, and report what fraction of the float32 top-k
+survives in the quantized top-k.
+
+A second measurement trap, found and fixed after the first published numbers
+already had the sibling-leakage fix above: COCO contains enough near/exact-
+duplicate images that exact float32 cosine-similarity ties are common (152/
+200 queries in a 100k-row sample tied exactly at rank 0). The original top-1
+extraction used np.argpartition + a plain np.argsort, which is NOT a stable
+sort -- on a tie it can return either candidate arbitrarily, and did so
+differently for float32 vs its float16-quantized self. That alone produced
+an apparent 76.5% top-1 "flip rate" that was almost entirely tie-break noise,
+not measured quantization error (a separate, deterministic-argmax-based
+script measuring the same queries put the real number at 1.5%). Fixed by
+making top_k_indices' tie-break deterministic (lowest index wins, matching
+np.argmax's convention) -- see the function for detail.
 
 What this does NOT measure: any real memory saved. Checked against current
 docs/community reporting rather than assumed: ChromaDB's HNSW index (via
@@ -94,9 +112,15 @@ def main():
     print(f"Fetching {n_fetch}/{n_total} embeddings from {args.chroma_db_dir}...")
     t0 = time.perf_counter()
     result = collection.get(limit=n_fetch, include=["embeddings"])
+    ids = result["ids"]
     embeddings_f32 = np.array(result["embeddings"], dtype=np.float32)
     del result  # the raw Python list-of-lists chromadb returned -- release before it's needed
     print(f"Fetched in {time.perf_counter() - t0:.1f}s, shape={embeddings_f32.shape}")
+
+    # ids are "{image_id}_{ann_id}" -- COCO stores ~5 caption rows per image,
+    # all sharing one embedding, so excluding a query's own row alone still
+    # leaves its siblings in as guaranteed near-identical matches.
+    image_ids = np.array([gid.split("_")[0] for gid in ids])
 
     norms = np.linalg.norm(embeddings_f32, axis=1, keepdims=True)
     embeddings_f32 /= np.clip(norms, 1e-8, None)  # in place -- avoid doubling peak memory
@@ -114,37 +138,70 @@ def main():
     query_rows = rng.choice(n, size=min(args.num_queries, n), replace=False)
     queries_f32 = embeddings_f32[query_rows]
 
-    print(f"\nBrute-force top-{args.k} search, N={len(query_rows)} queries, against all {n} embeddings...")
-    print("(each query's own row is excluded from its own candidate search -- queries ARE index rows here, "
-          "and leaving self-matches in would guarantee 1/k of the overlap 'for free' regardless of how good "
-          "or bad the quantization is, inflating every recall number by a fixed, uninformative floor)")
+    # Exclude every row sharing a query's image_id (not just the sampled row
+    # itself) from that query's candidate search -- see module docstring.
+    query_image_ids = image_ids[query_rows]
+    exclude_mask = image_ids[None, :] == query_image_ids[:, None]  # (num_queries, n)
+    avg_excluded = exclude_mask.sum(axis=1).mean()
+    print(f"\nExcluding an average of {avg_excluded:.1f} sibling rows per query (own image_id's other captions)")
 
-    def top_k_indices(query_matrix, target_matrix, k, exclude_rows=None):
-        # cosine similarity via matmul (both sides already unit-normalised)
+    print(f"\nBrute-force top-{args.k} search, N={len(query_rows)} queries, against all {n} embeddings...")
+
+    def top_k_indices(query_matrix, target_matrix, k, exclude_mask):
+        # cosine similarity via matmul (both sides already unit-normalised).
+        # COCO has enough near/exact-duplicate images that exact float32 ties
+        # in cosine similarity are common, not rare (confirmed empirically:
+        # 152/200 queries had an exact tie at rank 0 in a 100k-row sample).
+        # np.argsort's default quicksort is NOT stable, so on a tie it picks
+        # an arbitrary winner that can differ between two otherwise-identical
+        # runs (e.g. float32 vs its float16-quantized self) -- inflating the
+        # measured top-1 "flip rate" with tie-break noise that has nothing to
+        # do with quantization. Break ties deterministically by lowest row
+        # index (matching np.argmax's convention) via: pre-sort the partition
+        # by index, then stable-sort by similarity.
         sims = query_matrix @ target_matrix.T
-        if exclude_rows is not None:
-            sims[np.arange(len(exclude_rows)), exclude_rows] = -np.inf
+        sims = np.where(exclude_mask, -np.inf, sims)
         # argpartition for speed, then sort just the top-k
         part = np.argpartition(-sims, kth=k, axis=1)[:, :k]
+        part = np.sort(part, axis=1)  # ascending index order -- ties resolve to lowest index
         row_idx = np.arange(sims.shape[0])[:, None]
-        order = np.argsort(-sims[row_idx, part], axis=1)
+        order = np.argsort(-sims[row_idx, part], axis=1, kind="stable")
         return part[row_idx, order]
 
-    gt_idx = top_k_indices(queries_f32, embeddings_f32, args.k, exclude_rows=query_rows)
+    gt_idx = top_k_indices(queries_f32, embeddings_f32, args.k, exclude_mask)
 
     embeddings_f16 = quantize_float16(embeddings_f32)
     queries_f16 = quantize_float16(queries_f32)
-    f16_idx = top_k_indices(queries_f16, embeddings_f16, args.k, exclude_rows=query_rows)
+    f16_idx = top_k_indices(queries_f16, embeddings_f16, args.k, exclude_mask)
     f16_recall = recall_at_k(gt_idx, f16_idx, args.k)
 
     embeddings_i8, _ = quantize_int8(embeddings_f32)
     queries_i8, _ = quantize_int8(queries_f32)
-    i8_idx = top_k_indices(queries_i8, embeddings_i8, args.k, exclude_rows=query_rows)
+    i8_idx = top_k_indices(queries_i8, embeddings_i8, args.k, exclude_mask)
     i8_recall = recall_at_k(gt_idx, i8_idx, args.k)
 
-    print(f"\n=== Recall@{args.k} of quantized ranking vs. float32 ranking (self-matches excluded) ===")
-    print(f"  float16: {f16_recall:.4f}  ({100 * (1 - f16_recall):.2f}% of top-{args.k} ranking changed)")
-    print(f"  int8:    {i8_recall:.4f}  ({100 * (1 - i8_recall):.2f}% of top-{args.k} ranking changed)")
+    # Top-1 flip rate: a coarser, more interpretable companion number to the
+    # top-k SET-overlap figure above -- "does the single best pick change,"
+    # not "does anything in the top-k change." Distinct metrics, reported
+    # separately rather than conflated (top-10 set overlap != rank
+    # correlation != top-1 agreement -- this script reports the first and
+    # third; see scripts/measure_quantization_downstream.py for what a
+    # top-1 flip actually costs in caption quality, not just ranking).
+    top1_flips = int((gt_idx[:, 0] != f16_idx[:, 0]).sum())
+    top1_flip_rate = top1_flips / len(query_rows)
+
+    print(f"\n=== Metric 1: top-{args.k} SET OVERLAP vs. float32 (sibling rows excluded) ===")
+    print("(fraction of the float32 top-k CANDIDATE SET that also appears, in any order, in the "
+          "quantized top-k set -- counts any position changing, not just the best one)")
+    print(f"  float16: {f16_recall:.4f}  ({100 * (1 - f16_recall):.2f}% of top-{args.k} set changed)")
+    print(f"  int8:    {i8_recall:.4f}  ({100 * (1 - i8_recall):.2f}% of top-{args.k} set changed)")
+
+    print(f"\n=== Metric 2: TOP-1 FLIP RATE vs. float32 (float16 only) ===")
+    print("(fraction of queries where the single BEST pick is a literally different row under "
+          "float16 -- a stricter, more interpretable number than set overlap; see "
+          "scripts/measure_quantization_downstream.py for what this costs in real caption quality)")
+    print(f"  float16: {top1_flip_rate:.4f}  ({top1_flips}/{len(query_rows)} queries flip their top-1 pick)")
+
     print(f"\nTheoretical bytes-per-element memory (NOT achievable in ChromaDB -- see module docstring):")
     print(f"  float32: {bytes_f32 / 1e6:.1f} MB   float16: {bytes_f16 / 1e6:.1f} MB   int8: {bytes_int8 / 1e6:.1f} MB")
 
@@ -155,13 +212,15 @@ def main():
                 "dim": d,
                 "num_queries": len(query_rows),
                 "k": args.k,
-                "self_matches_excluded": True,
+                "sibling_rows_excluded": True,
+                "avg_excluded_per_query": float(avg_excluded),
                 "theoretical_memory_mb_not_achievable_in_chromadb": {
                     "float32": bytes_f32 / 1e6,
                     "float16": bytes_f16 / 1e6,
                     "int8": bytes_int8 / 1e6,
                 },
-                "ranking_recall_vs_float32": {"float16": f16_recall, "int8": i8_recall},
+                "top_k_set_overlap_vs_float32": {"k": args.k, "float16": f16_recall, "int8": i8_recall},
+                "top1_flip_rate_vs_float32": {"float16": top1_flip_rate, "flips": top1_flips},
             },
             f,
             indent=2,

@@ -161,21 +161,34 @@ docker run --rm \
     --num-samples 200 --ks 1,5,10
 ```
 
-## Quantization: a precision-robustness result, not a memory result (`quantization_summary.csv`)
+## Quantization: retrieval rankings are measurably more brittle than SDXL-style weight quantization, but it doesn't cost caption quality (`quantization_summary.csv`, `quantization_downstream_summary.csv`)
 
-An earlier version of this document reported "50% memory saved for <1% recall loss" as a fp16 win. **Both halves of that claim needed correcting.**
+The common assumption carried over from generative-model quantization work (e.g. SDXL tolerating aggressive mixed precision at near-perceptual parity) is that fp16 is close to free for embedding retrieval too. It isn't, quite — but the way it isn't free is more interesting than a flat "didn't work." This section went through three rounds of correction before the numbers below were trustworthy; each round is left in because the traps are the actual content (see also `scripts/quantize_index.py` and `scripts/diagnose_quantization_discrepancy.py`, whose docstrings carry the full detail).
 
-**The memory number was theoretical, not measured**, and it isn't achievable with this project's actual storage layer: checked against Chroma's own docs ([Configure Collections](https://docs.trychroma.com/docs/collections/configure) lists the HNSW config surface — `space`, `ef_construction`, `ef_search` — no dtype/quantization parameter exists) and corroborating third-party comparisons ([Chroma vs FAISS](https://myengineeringpath.dev/tools/chroma-vs-faiss/), [Qdrant vs Chroma](https://www.kunalganglani.com/blog/qdrant-vs-chroma)), ChromaDB's HNSW index stores vectors as float32 internally with no native quantization support. Feeding it float16-rounded values wouldn't reduce what it stores or serves — it re-expands to float32 regardless. The MB figures below are pure bytes-per-element arithmetic on arrays pulled *out* of ChromaDB into numpy for this experiment, not a deployable result. Realizing an actual memory saving would require a different vector store (Qdrant's scalar quantization was the example that came up in research).
+**Round 1 — the memory number was theoretical, not measured**, and isn't achievable with this project's actual storage layer: checked against Chroma's own docs ([Configure Collections](https://docs.trychroma.com/docs/collections/configure) lists the HNSW config surface — `space`, `ef_construction`, `ef_search` — no dtype/quantization parameter exists) and corroborating third-party comparisons ([Chroma vs FAISS](https://myengineeringpath.dev/tools/chroma-vs-faiss/), [Qdrant vs Chroma](https://www.kunalganglani.com/blog/qdrant-vs-chroma)), ChromaDB's HNSW index stores vectors as float32 internally with no native quantization support. The MB figures below are pure bytes-per-element arithmetic on arrays pulled *out* of ChromaDB into numpy, not a deployable result. Realizing an actual memory saving would need a different vector store (Qdrant's scalar quantization was the example that came up in research).
 
-**The recall number was inflated by a trivial self-match.** The 200 query embeddings are themselves rows of the 100,000-embedding index, and the original version of this script didn't exclude a query's own row from its own candidate search — since a self-match survives quantization almost by definition, that guaranteed roughly 1 of the top-10 slots "for free" regardless of how good or bad the quantization actually was. Corrected (self-matches excluded from both the float32 ground truth and the quantized search):
+**Round 2 — the ranking-change number was inflated by sibling-row leakage.** COCO stores ~5 caption rows per image, all sharing one identical CLIP embedding. The 200 query embeddings are themselves rows of the same 100,000-row index, and an early version of this script excluded only the single sampled row from its own candidate search — leaving its ~4 siblings in, as guaranteed near-identical matches for both float32 and float16 alike. Excluding every sibling row (not just the sampled one) is what produced the corrected top-10 set-overlap numbers below.
 
-| Representation | Theoretical memory (not achievable in ChromaDB) | Ranking Recall@10 vs. float32 (self-matches excluded) |
-|---|---|---|
-| float32 (baseline) | 204.8 MB | 100% |
-| float16 | 102.4 MB (−50%, theoretical) | 91.55% (−8.45%) |
-| int8 | 51.2 MB (−75%, theoretical) | 87.75% (−12.25%) |
+**Round 3 — "8.45% ranking churn" wasn't even a well-defined number.** It conflated two different questions: does *anything* in the top-10 candidate set change (order-agnostic), versus does the single *best* pick change (strict)? Measuring the second separately first produced an alarming 76.5% top-1 flip rate — a 50x jump from the top-10 number, which shouldn't be possible if the top-10 set itself is 99.65% stable. That discrepancy turned out to be a real bug, not a real result: the top-1 extraction used `np.argpartition` + `np.argsort`, which isn't a stable sort, and COCO has enough near/exact-duplicate images that exact float32 similarity ties are common (152/200 sampled queries tied exactly at rank 0 in this data). On a tie, an unstable sort can return a different "winner" for float32 vs. its float16-quantized self, for reasons having nothing to do with quantization. Fixing the tie-break to resolve deterministically (lowest index, matching `np.argmax`'s convention) brought the number down to 1.5% — confirmed against an independently-written script (`scripts/measure_quantization_downstream.py`) using plain `np.argmax` on the same queries, which agreed exactly.
 
-**The honest finding: retrieval ranking is reasonably, not extremely, robust to float16 rounding** — roughly 1 in 12 of the top-10 results changes, a real cost, not the "near-free" result originally claimed. int8 changes roughly 1 in 8. Neither number currently translates into an actual memory saving for this project's ChromaDB-based storage.
+With all three corrections in:
+
+| Representation | Theoretical memory (not achievable in ChromaDB) | Top-10 set overlap vs. float32 | Top-1 flip rate vs. float32 |
+|---|---|---|---|
+| float32 (baseline) | 204.8 MB | 100% | — |
+| float16 | 102.4 MB (−50%, theoretical) | 99.65% (0.35% of the set changes) | 1.50% (3/200 queries pick a different single best) |
+| int8 | 51.2 MB (−75%, theoretical) | 91.15% (8.85% of the set changes) | not measured |
+
+**The actual finding: fp16 barely disturbs which single candidate wins, and when it does, it doesn't cost anything measurable.** Because COCO has ~5 near-synonymous reference captions per image, a top-1 flip could easily swap one valid caption for another equally valid one rather than a worse one — so the ranking-instability number alone doesn't say whether it matters. Running the actual downstream task (scoring the float32-selected vs. float16-selected top-1 caption against real COCO references, same 200 queries, `pycocoevalcap` suite) settles it:
+
+| Metric | float32 | float16 | delta |
+|---|---|---|---|
+| BLEU-4 | 0.1254 | 0.1235 | −0.0019 |
+| METEOR | 0.1819 | 0.1816 | −0.0003 |
+| ROUGE-L | 0.3776 | 0.3767 | −0.0009 |
+| CIDEr | 0.5073 | 0.5076 | +0.0003 |
+
+Every delta is within noise. Ranking instability at the top-1 level does not translate into a caption-quality cost here — the rare flips land on essentially-as-good neighbors, not worse ones. int8's larger top-10 churn (8.85%) was not carried through to a top-1/downstream measurement in this pass; that would be the natural next data point if int8 is ever seriously considered.
 
 Reproduce:
 ```bash
@@ -184,4 +197,11 @@ docker run --rm \
   -v "/path/to/eval_output:/app/eval_output" \
   rag-image-captioning:local python scripts/quantize_index.py \
     --chroma-db-dir /app/chroma_db_scale_test --max-embeddings 100000 --num-queries 200 --k 10
+
+# downstream caption-quality cost of the float16 top-1 flips (needs the :eval image, for pycocoevalcap/METEOR)
+docker run --rm \
+  -v "/path/to/chroma_db_scale_test:/app/chroma_db_scale_test" \
+  -v "/path/to/coco/annotations:/app/coco_annotations" \
+  -v "/path/to/eval_output:/app/eval_output" \
+  rag-image-captioning:eval python scripts/measure_quantization_downstream.py
 ```
