@@ -81,3 +81,94 @@ docker run --rm \
   -v "/path/to/dist_shift_output:/app/dist_shift_output" \
   rag-image-captioning:eval python scripts/score_hand_labeled.py
 ```
+
+## Recall@K -- retriever quality, independent of caption text (`recall_at_k.csv`)
+
+N=200. The ablation table above measures END-TO-END caption quality (does the retrieved text match a reference caption), which conflates retriever quality with selection/aggregation quality. Recall@K isolates the first question: for a query image, rank every caption in the corpus by CLIP similarity and check whether the image's OWN ground-truth caption lands in the top K (standard image-to-text retrieval formulation, no held-out split -- the "positive" being tested is whether an image's own captions rank highly among everything, including itself).
+
+| K | Recall@K |
+|---|---|
+| 1 | 0.990 |
+| 5 | 0.990 |
+| 10 | 0.990 |
+
+Median rank of the first own-caption hit, when found: **1** (i.e. usually the literal #1 result). Only 2/200 images had no own-caption in the top 10. **The retriever itself is not the bottleneck** — when end-to-end caption quality falls short of a reference, it's because a correctly-similar image's caption still isn't the same sentence a human would write fresh for this specific photo, not because CLIP+ChromaDB failed to find it.
+
+Reproduce:
+```bash
+docker run --rm \
+  -v "/path/to/coco:/app/coco" \
+  -v "/path/to/chroma_db:/app/chroma_db" \
+  -v "/path/to/eval_output:/app/eval_output" \
+  rag-image-captioning:local python scripts/measure_recall_at_k.py \
+    --chroma-db-dir /app/chroma_db \
+    --coco-img-dir /app/coco/val2017 \
+    --coco-ann-file /app/coco/annotations/captions_val2017.json \
+    --num-samples 200 --ks 1,5,10
+```
+
+## Selection strategy x crop source (`selection_strategy_ablation.csv`)
+
+The main ablation table picks the single retrieved candidate CLOSEST TO THE QUERY IMAGE (`--output-mode top1`). **Medoid selection** — pick the candidate most similar, on average, to the *rest* of the retrieved pool (a consensus pick, via CLIP text-embedding similarity) — is a different, ~20-line strategy for consuming the same retrieved pool, tested as `--output-mode medoid`.
+
+| Selection | Config | CIDEr | s/image |
+|---|---|---|---|
+| top1 | retrieval-only | 0.469 | 0.28 |
+| top1 | +segmentation | 0.422 | 10.43 |
+| top1 | all-seven (DETR) | 0.395 | 11.87 |
+| top1 | **+random-crops** (blind, no DETR) | **0.479** | 0.99 |
+| medoid | retrieval-only | 0.486 | 0.47 |
+| **medoid** | **+segmentation** | **0.537** | 10.46 |
+| medoid | all-seven (DETR) | 0.512 | 12.84 |
+
+Two things happen at once here, and they're independent variables, not one:
+
+1. **Medoid selection is a strictly better, near-free upgrade over top1.** `retrieval-only` alone goes from 0.469 (top1) to 0.486 (medoid) at +0.19s/image (CLIP text-encoding the small candidate pool). Under medoid, **`+segmentation` becomes the single best config measured anywhere in this project** (CIDEr 0.537) — crops DO help, just not when consumed by nearest-neighbour selection.
+2. **DETR's specific crop *characteristics* — not "having extra crops" — are what hurt under top1.** `+random-crops` (6 blind, large [40-80% of image] crops, no DETR, same variant count as all-seven) scores 0.479 under top1 — matching/slightly beating `retrieval-only`, and clearly beating DETR's `all-seven` (0.395), at 1/14th the latency. DETR's crops are typically small and zoomed to a single object; large blind crops stay closer to the whole-image gestalt the reference captions actually describe.
+
+Net effect: the honest headline is not "crops hurt" or "crops help" — it's "top1 selection was the wrong way to consume a large or DETR-zoomed candidate pool; medoid consumes it correctly, and at that point DETR's crops earn their latency cost."
+
+Reproduce:
+```bash
+# medoid selection, all four crop configs
+docker run --rm \
+  -v "/path/to/coco:/app/coco" -v "/path/to/chroma_db:/app/chroma_db" \
+  -v "/path/to/eval_output:/app/eval_output" \
+  rag-image-captioning:eval python scripts/evaluate.py \
+    --num-eval-images 200 --seed 42 \
+    --coco-img-dir /app/coco/val2017 --coco-ann-file /app/coco/annotations/captions_val2017.json \
+    --source-chroma-db /app/chroma_db --eval-chroma-db /app/chroma_db_eval_medoid \
+    --out /app/eval_output/eval_results_medoid.json --output-mode medoid --skip-baselines
+
+# random-crop control (blind crops vs DETR crops vs no crops), top1 selection
+docker run --rm \
+  -v "/path/to/coco:/app/coco" -v "/path/to/chroma_db:/app/chroma_db" \
+  -v "/path/to/eval_output:/app/eval_output" \
+  rag-image-captioning:eval python scripts/evaluate.py \
+    --num-eval-images 200 --seed 42 \
+    --coco-img-dir /app/coco/val2017 --coco-ann-file /app/coco/annotations/captions_val2017.json \
+    --source-chroma-db /app/chroma_db --eval-chroma-db /app/chroma_db_eval_randcrop \
+    --out /app/eval_output/eval_results_random_crop_control.json \
+    --output-mode top1 --ablations retrieval-only,all-seven --random-crop-control --skip-baselines
+```
+
+## Index quantization (`quantization_summary.csv`)
+
+100,000-embedding sample of the 591,753-embedding train2017-scale index (see the walkthrough doc's scale-test section) — full-index fetch OOM-killed on this machine's WSL2 memory cap (chromadb's `.get()` materialises the whole result as Python lists-of-lists before any numpy conversion, which alone exceeds it; 100k is a large, still-representative sample). Brute-force cosine top-10 search, N=200 queries: recall of each quantized representation's top-10 against the float32 ground truth.
+
+| Representation | Memory | Recall@10 vs. float32 |
+|---|---|---|
+| float32 (baseline) | 204.8 MB | 100% |
+| **float16** | **102.4 MB (−50%)** | **99.15% (−0.85%)** |
+| int8 | 51.2 MB (−75%) | 93.90% (−6.10%) |
+
+**float16 is close to free** — half the memory for under 1% recall loss, no accuracy-sensitive use case would notice. **int8 is a real tradeoff** — 75% memory saved, but a genuine 6% of top-10 results change, worth it only under real memory pressure (e.g. the full 591k-scale index at int8 would be ~300MB instead of ~1.2GB).
+
+Reproduce:
+```bash
+docker run --rm \
+  -v "/path/to/chroma_db_scale_test:/app/chroma_db_scale_test" \
+  -v "/path/to/eval_output:/app/eval_output" \
+  rag-image-captioning:local python scripts/quantize_index.py \
+    --chroma-db-dir /app/chroma_db_scale_test --max-embeddings 100000 --num-queries 200 --k 10
+```

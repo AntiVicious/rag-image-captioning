@@ -137,7 +137,58 @@ def clip_score(image_embedding, caption, model_manager):
     return CLIPSCORE_WEIGHT * max(cos, 0.0)
 
 
-def instrumented_retrieve(image_path, config, model_manager, db_manager, preprocessor, timings, output_mode="top1"):
+def medoid_caption(documents_per_variant, model_manager):
+    """Pick the single retrieved caption most similar, on average, to every
+    other retrieved candidate -- the consensus pick, as opposed to top1's
+    "closest to the query image" or aggregated's "concatenate everything."
+    The intuition: retrieval distance ranks candidates by similarity to the
+    QUERY IMAGE, but the single nearest neighbour can still be an outlier
+    caption (oddly phrased, mislabeled); a candidate that most of the OTHER
+    candidates also agree with is a cheap proxy for "typical/representative
+    of this image," which may be more robust to that one-bad-neighbour case.
+    Ties (including a pool of size 1) fall back to the first candidate."""
+    candidates = [d for docs in documents_per_variant for d in docs]
+    if not candidates:
+        return ""
+    seen = set()
+    unique_candidates = [c for c in candidates if not (c in seen or seen.add(c))]
+    if len(unique_candidates) == 1:
+        return unique_candidates[0]
+
+    embeddings = model_manager.encode_text(unique_candidates)  # (n, d), already normalised
+    sim_matrix = embeddings @ embeddings.T  # cosine, since normalised
+    n = len(unique_candidates)
+    sim_matrix.fill_diagonal_(0.0)
+    mean_sim = sim_matrix.sum(dim=1) / (n - 1)
+    best_idx = int(mean_sim.argmax().item())
+    return unique_candidates[best_idx]
+
+
+def get_random_crops(image, n, seed_key):
+    """Control for the DETR-crop ablation: n "dumb" crops at random scale/
+    position, no object/segment awareness at all. Deterministic per image
+    (seeded on seed_key, e.g. the image_id) so repeat runs are reproducible.
+    If DETR-aware crops and blind random crops score the same, the finding
+    upgrades from "DETR crops specifically don't help" to "crop-based
+    grounding doesn't help regardless of how the crops are chosen" -- a
+    stronger, cheaper-to-support claim."""
+    rng = random.Random(seed_key)
+    w, h = image.size
+    crops = []
+    for _ in range(n):
+        # each crop covers 40-80% of each dimension, placed at a random
+        # valid offset -- "dumb" on purpose: no notion of what's IN the crop
+        crop_w = max(1, int(w * rng.uniform(0.4, 0.8)))
+        crop_h = max(1, int(h * rng.uniform(0.4, 0.8)))
+        x0 = rng.randint(0, max(0, w - crop_w))
+        y0 = rng.randint(0, max(0, h - crop_h))
+        crops.append(image.crop((x0, y0, x0 + crop_w, y0 + crop_h)))
+    return crops
+
+
+def instrumented_retrieve(
+    image_path, config, model_manager, db_manager, preprocessor, timings, output_mode="top1", random_crop_n=0
+):
     from PIL import Image
 
     image = Image.open(image_path).convert("RGB")
@@ -153,7 +204,8 @@ def instrumented_retrieve(image_path, config, model_manager, db_manager, preproc
     timings["detr_segmentation"].append(t1 - t0)
     timings["detr_object_detection"].append(t2 - t1)
 
-    variants = [image] + list(seg_crops) + list(obj_crops)
+    rand_crops = get_random_crops(image, random_crop_n, seed_key=image_path) if random_crop_n else []
+    variants = [image] + list(seg_crops) + list(obj_crops) + rand_crops
 
     import torch
 
@@ -174,6 +226,8 @@ def instrumented_retrieve(image_path, config, model_manager, db_manager, preproc
     # between n_results=1 and n_results=3 queries, always at distance delta
     # 0.000000, i.e. a tie-break artifact, not a different nearest image).
     top_k = 1 if output_mode == "top1" else config.captions_per_crop
+    # medoid needs a real candidate pool to choose a consensus from, same as
+    # aggregated mode's pool size -- only top1 can shrink the query to k=1.
     results = db_manager.query_similar(query_embeddings, top_k)
     t_c = time.perf_counter()
 
@@ -199,6 +253,8 @@ def instrumented_retrieve(image_path, config, model_manager, db_manager, preproc
             if best_dist is None or dists[0] < best_dist:
                 best_dist, best_doc = dists[0], docs[0]
         caption = best_doc or ""
+    elif output_mode == "medoid":
+        caption = medoid_caption(documents_per_variant, model_manager)
     else:
         blocks = [" ".join(docs) for docs in documents_per_variant]
         caption = aggregate_captions(blocks)
@@ -325,13 +381,16 @@ def main():
     parser.add_argument("--out", default="./eval_results.json")
     parser.add_argument(
         "--output-mode",
-        choices=["top1", "aggregated"],
+        choices=["top1", "medoid", "aggregated"],
         default="top1",
         help="top1 (default): every config emits exactly one caption, the globally best "
         "candidate by distance -- output length held constant across configs, so n-gram "
-        "metrics measure retrieval quality, not verbosity. aggregated: the old behavior, "
-        "concatenating every variant's top-k candidates via aggregate_captions() -- kept "
-        "for reproducing the original (length-confounded) numbers.",
+        "metrics measure retrieval quality, not verbosity. medoid: also emits exactly one "
+        "caption, but picks the candidate most similar (by CLIP text embedding) to the rest "
+        "of the retrieved pool, rather than closest to the query image -- a consensus pick "
+        "instead of a nearest-neighbour pick. aggregated: the old behavior, concatenating "
+        "every variant's top-k candidates via aggregate_captions() -- kept for reproducing "
+        "the original (length-confounded) numbers.",
     )
     parser.add_argument(
         "--ablations",
@@ -343,6 +402,13 @@ def main():
         "--skip-baselines",
         action="store_true",
         help="Skip the generic-floor and top1-verbatim baseline rows.",
+    )
+    parser.add_argument(
+        "--random-crop-control",
+        action="store_true",
+        help="Add a '+random-crops' row: 6 blind random crops (no DETR) per image, same "
+        "variant count as all-seven. Tests whether DETR's crop SELECTION matters, or "
+        "whether crop-based grounding hurts regardless of how crops are chosen.",
     )
     parser.add_argument(
         "--debug-print-config",
@@ -410,10 +476,19 @@ def main():
         row_order.append("top1-verbatim")
         print(f"  scores: {t1_scores}")
 
-    for name, seg, obj in ablations:
+    rows = [(name, seg, obj, 0) for name, seg, obj in ablations]
+    if args.random_crop_control:
+        # Same variant COUNT as all-seven (up to 6 non-original crops, i.e.
+        # 7 total) but chosen blind -- no DETR, no notion of what's in the
+        # crop. Tests whether it's specifically DETR's crop *selection* that
+        # hurts, or crop-based grounding hurting regardless of how crops are
+        # chosen (a stronger, cheaper-to-support claim if this also loses).
+        rows.append(("+random-crops", False, False, 6))
+
+    for name, seg, obj, random_crop_n in rows:
         config.enable_segmentation = seg
         config.enable_object_detection = obj
-        print(f"\n=== {name} (segmentation={seg}, object_detection={obj}) ===")
+        print(f"\n=== {name} (segmentation={seg}, object_detection={obj}, random_crops={random_crop_n}) ===")
 
         predictions = {}
         timings = defaultdict(list)
@@ -423,7 +498,14 @@ def main():
             if not img_path:
                 continue
             caption = instrumented_retrieve(
-                img_path, config, model_manager, db_manager, preprocessor, timings, args.output_mode
+                img_path,
+                config,
+                model_manager,
+                db_manager,
+                preprocessor,
+                timings,
+                args.output_mode,
+                random_crop_n,
             )
             predictions[img_id] = caption
             if (i + 1) % 50 == 0:
