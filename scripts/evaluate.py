@@ -379,8 +379,7 @@ def main():
     parser.add_argument(
         "--debug-print-config",
         default="all-seven",
-        help="Print raw candidate/reference pairs for this config before scoring (set to "
-        "'' to disable).",
+        help="Print raw candidate/reference pairs for this config before scoring (set to " "'' to disable).",
     )
     parser.add_argument("--debug-print-n", type=int, default=10)
     parser.add_argument(

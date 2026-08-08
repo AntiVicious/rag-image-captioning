@@ -48,15 +48,15 @@ if not os.path.exists(LOCAL_CHROMA_DIR) or not os.listdir(LOCAL_CHROMA_DIR):
 
         snapshot_download(repo_id=INDEX_DATASET_REPO, repo_type="dataset", local_dir=LOCAL_CHROMA_DIR)
 
-import json
-import tempfile
-from pathlib import Path
+import json  # noqa: E402
+import tempfile  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-import streamlit as st
-from PIL import Image
+import streamlit as st  # noqa: E402
+from PIL import Image  # noqa: E402
 
-from src.config import Config
-from src.pipeline import Pipeline
+from src.config import Config  # noqa: E402
+from src.pipeline import Pipeline  # noqa: E402
 
 st.set_page_config(page_title="RAG Image Captioning (demo)", page_icon="🖼️", layout="wide")
 

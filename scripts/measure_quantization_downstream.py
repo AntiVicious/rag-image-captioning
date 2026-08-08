@@ -161,9 +161,11 @@ def main():
     n_scored = len(query_image_ids)
     flip_rate = flips / n_scored
     print(f"\nTop-1 flip rate: {flips}/{n_scored} = {flip_rate:.4f}")
-    print("(this is a DIFFERENT number from the 8.45% top-10 set-overlap figure in "
-          "results/quantization_summary.csv -- that one counts any of the top-10 candidates "
-          "changing; this one counts only the single best pick changing)")
+    print(
+        "(this is a DIFFERENT number from the 8.45% top-10 set-overlap figure in "
+        "results/quantization_summary.csv -- that one counts any of the top-10 candidates "
+        "changing; this one counts only the single best pick changing)"
+    )
 
     print("\nSample flips (float32 vs float16 top-1 caption):")
     for ex in flip_examples[:5]:

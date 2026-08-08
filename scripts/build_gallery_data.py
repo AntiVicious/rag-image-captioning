@@ -67,14 +67,18 @@ def main():
     by_image = load_annotations(args.coco_ann_file)
 
     image_ids = sorted(int(k) for k in top1_data[CROP_CONFIG_JSON_KEYS["retrieval-only"]]["per_image"].keys())
-    medoid_ids = sorted(int(k) for k in medoid_data[CROP_CONFIG_JSON_KEYS["retrieval-only"]]["per_image"].keys())
+    medoid_ids = sorted(
+        int(k) for k in medoid_data[CROP_CONFIG_JSON_KEYS["retrieval-only"]]["per_image"].keys()
+    )
     if image_ids != medoid_ids:
         raise SystemExit(
             f"top1 and medoid runs cover different image sets ({len(image_ids)} vs {len(medoid_ids)} images) "
             "-- re-run both with the same --num-eval-images/--seed."
         )
-    print(f"{len(image_ids)} images, {len(CROP_CONFIGS)} crop configs x 2 selection strategies = "
-          f"{len(CROP_CONFIGS) * 2} precomputed captions per image")
+    print(
+        f"{len(image_ids)} images, {len(CROP_CONFIGS)} crop configs x 2 selection strategies = "
+        f"{len(CROP_CONFIGS) * 2} precomputed captions per image"
+    )
 
     images_out_dir = os.path.join(args.out_dir, "gallery_images")
     os.makedirs(images_out_dir, exist_ok=True)

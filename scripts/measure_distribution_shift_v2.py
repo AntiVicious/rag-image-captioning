@@ -98,17 +98,20 @@ def main():
     # --- sample 200 Indian images uniformly across the FULL merged set ---
     indian_image_ids = sorted({int(ids[i].split("_")[0]) for i in indian_idx})
     rng = np.random.RandomState(args.seed)
-    sample_indian_ids = rng.choice(indian_image_ids, size=min(args.num_samples, len(indian_image_ids)), replace=False)
+    sample_indian_ids = rng.choice(
+        indian_image_ids, size=min(args.num_samples, len(indian_image_ids)), replace=False
+    )
     n_food = int((sample_indian_ids < 91000000).sum())
     n_commons = int((sample_indian_ids >= 91000000).sum())
     print(f"Indian query sample: {len(sample_indian_ids)} images ({n_food} food, {n_commons} commons)")
 
     # --- sample 200 COCO images (by unique image id, for the baseline) ---
     coco_image_ids = sorted({int(ids[i].split("_")[0]) for i in coco_idx})
-    sample_coco_ids = rng.choice(coco_image_ids, size=min(args.num_samples, len(coco_image_ids)), replace=False)
+    sample_coco_ids = rng.choice(
+        coco_image_ids, size=min(args.num_samples, len(coco_image_ids)), replace=False
+    )
 
     indian_pos = {int(ids[i].split("_")[0]): i for i in indian_idx}
-    coco_pos_before = {int(before_ids[i].split("_")[0]): i for i in range(len(before_ids))}
 
     # --- BEFORE: Indian sample vs the pre-augmentation COCO-only index ---
     before_records = []
@@ -203,16 +206,24 @@ def main():
 
     coco_mean = statistics.mean(coco_baseline_dists)
     print(f"\n=== Results (N={len(sample_indian_ids)}, {n_food} food + {n_commons} commons) ===")
-    print(f"COCO baseline:            mean={coco_mean:.4f}  median={statistics.median(coco_baseline_dists):.4f}")
-    print(f"Indian BEFORE:            mean={statistics.mean(before_dists):.4f}  "
-          f"median={statistics.median(before_dists):.4f}  "
-          f"({100 * (statistics.mean(before_dists) / coco_mean - 1):+.1f}% vs COCO)")
-    print(f"Indian AFTER (uncorrected): mean={statistics.mean(after_dists):.4f}  "
-          f"median={statistics.median(after_dists):.4f}  "
-          f"({100 * (statistics.mean(after_dists) / coco_mean - 1):+.1f}% vs COCO)")
-    print(f"Indian AFTER (dedup-corrected): mean={statistics.mean(after_corr_dists):.4f}  "
-          f"median={statistics.median(after_corr_dists):.4f}  "
-          f"({100 * (statistics.mean(after_corr_dists) / coco_mean - 1):+.1f}% vs COCO)")
+    print(
+        f"COCO baseline:            mean={coco_mean:.4f}  median={statistics.median(coco_baseline_dists):.4f}"
+    )
+    print(
+        f"Indian BEFORE:            mean={statistics.mean(before_dists):.4f}  "
+        f"median={statistics.median(before_dists):.4f}  "
+        f"({100 * (statistics.mean(before_dists) / coco_mean - 1):+.1f}% vs COCO)"
+    )
+    print(
+        f"Indian AFTER (uncorrected): mean={statistics.mean(after_dists):.4f}  "
+        f"median={statistics.median(after_dists):.4f}  "
+        f"({100 * (statistics.mean(after_dists) / coco_mean - 1):+.1f}% vs COCO)"
+    )
+    print(
+        f"Indian AFTER (dedup-corrected): mean={statistics.mean(after_corr_dists):.4f}  "
+        f"median={statistics.median(after_corr_dists):.4f}  "
+        f"({100 * (statistics.mean(after_corr_dists) / coco_mean - 1):+.1f}% vs COCO)"
+    )
 
     with open(args.out, "w") as f:
         json.dump(

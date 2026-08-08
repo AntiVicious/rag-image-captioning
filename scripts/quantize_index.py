@@ -50,7 +50,6 @@ Usage:
 
 import argparse
 import json
-import statistics
 import time
 
 import numpy as np
@@ -143,7 +142,9 @@ def main():
     query_image_ids = image_ids[query_rows]
     exclude_mask = image_ids[None, :] == query_image_ids[:, None]  # (num_queries, n)
     avg_excluded = exclude_mask.sum(axis=1).mean()
-    print(f"\nExcluding an average of {avg_excluded:.1f} sibling rows per query (own image_id's other captions)")
+    print(
+        f"\nExcluding an average of {avg_excluded:.1f} sibling rows per query (own image_id's other captions)"
+    )
 
     print(f"\nBrute-force top-{args.k} search, N={len(query_rows)} queries, against all {n} embeddings...")
 
@@ -191,19 +192,27 @@ def main():
     top1_flip_rate = top1_flips / len(query_rows)
 
     print(f"\n=== Metric 1: top-{args.k} SET OVERLAP vs. float32 (sibling rows excluded) ===")
-    print("(fraction of the float32 top-k CANDIDATE SET that also appears, in any order, in the "
-          "quantized top-k set -- counts any position changing, not just the best one)")
+    print(
+        "(fraction of the float32 top-k CANDIDATE SET that also appears, in any order, in the "
+        "quantized top-k set -- counts any position changing, not just the best one)"
+    )
     print(f"  float16: {f16_recall:.4f}  ({100 * (1 - f16_recall):.2f}% of top-{args.k} set changed)")
     print(f"  int8:    {i8_recall:.4f}  ({100 * (1 - i8_recall):.2f}% of top-{args.k} set changed)")
 
-    print(f"\n=== Metric 2: TOP-1 FLIP RATE vs. float32 (float16 only) ===")
-    print("(fraction of queries where the single BEST pick is a literally different row under "
-          "float16 -- a stricter, more interpretable number than set overlap; see "
-          "scripts/measure_quantization_downstream.py for what this costs in real caption quality)")
+    print("\n=== Metric 2: TOP-1 FLIP RATE vs. float32 (float16 only) ===")
+    print(
+        "(fraction of queries where the single BEST pick is a literally different row under "
+        "float16 -- a stricter, more interpretable number than set overlap; see "
+        "scripts/measure_quantization_downstream.py for what this costs in real caption quality)"
+    )
     print(f"  float16: {top1_flip_rate:.4f}  ({top1_flips}/{len(query_rows)} queries flip their top-1 pick)")
 
-    print(f"\nTheoretical bytes-per-element memory (NOT achievable in ChromaDB -- see module docstring):")
-    print(f"  float32: {bytes_f32 / 1e6:.1f} MB   float16: {bytes_f16 / 1e6:.1f} MB   int8: {bytes_int8 / 1e6:.1f} MB")
+    print("\nTheoretical bytes-per-element memory (NOT achievable in ChromaDB -- see module docstring):")
+    print(
+        f"  float32: {bytes_f32 / 1e6:.1f} MB   "
+        f"float16: {bytes_f16 / 1e6:.1f} MB   "
+        f"int8: {bytes_int8 / 1e6:.1f} MB"
+    )
 
     with open(args.out, "w") as f:
         json.dump(

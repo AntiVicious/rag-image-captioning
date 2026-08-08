@@ -95,7 +95,6 @@ def main():
     collection = client.get_collection(args.collection_name)
     print(f"Fetching all {collection.count()} embeddings...")
     ids, embeddings, documents = fetch_all(collection)
-    id_index = {id_: i for i, id_ in enumerate(ids)}
 
     # unit-normalise defensively (should already be normalised at write time)
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -201,10 +200,14 @@ def main():
 
     full_exclude = base_exclude | twin_exclude
     fixed_mask = np.array([gid not in full_exclude for gid in full_ids])
-    replication_mask = np.array([gid not in base_exclude for gid in full_ids])  # no twin exclusion, for sanity check
+    replication_mask = np.array(
+        [gid not in base_exclude for gid in full_ids]
+    )  # no twin exclusion, for sanity check
     print(
-        f"\nFixed held-out index: {len(full_ids)} -> base held-out {len(full_ids) - replication_mask.sum()} "
-        f"-> +{len(full_exclude) - len(base_exclude)} additional near-dup twins -> {fixed_mask.sum()} candidates"
+        f"\nFixed held-out index: {len(full_ids)} -> "
+        f"base held-out {len(full_ids) - replication_mask.sum()} "
+        f"-> +{len(full_exclude) - len(base_exclude)} additional near-dup twins "
+        f"-> {fixed_mask.sum()} candidates"
     )
 
     documents_arr = np.array(documents)
@@ -242,22 +245,32 @@ def main():
         )
 
     rep_dists = [r["top1_distance"] for r in replication_records]
-    print(f"\nReplication check (same held-out setup as the original run, twins NOT yet excluded): "
-          f"mean={statistics.mean(rep_dists):.4f}  median={statistics.median(rep_dists):.4f}")
-    print(f"  (original stored result was mean={after['indian']['top1_distance_mean']:.4f}  "
-          f"median={after['indian']['top1_distance_median']:.4f} -- should match closely)")
+    print(
+        f"\nReplication check (same held-out setup as the original run, twins NOT yet excluded): "
+        f"mean={statistics.mean(rep_dists):.4f}  median={statistics.median(rep_dists):.4f}"
+    )
+    print(
+        f"  (original stored result was mean={after['indian']['top1_distance_mean']:.4f}  "
+        f"median={after['indian']['top1_distance_median']:.4f} -- should match closely)"
+    )
 
     orig_dists = [r["top1_distance"] for r in query_records]
     corr_dists = [r["top1_distance"] for r in corrected_records]
-    print(f"\nOriginal stored (twins NOT excluded):  mean={statistics.mean(orig_dists):.4f}  "
-          f"median={statistics.median(orig_dists):.4f}")
-    print(f"Corrected (same held-out set + twins excluded):     mean={statistics.mean(corr_dists):.4f}  "
-          f"median={statistics.median(corr_dists):.4f}")
+    print(
+        f"\nOriginal stored (twins NOT excluded):  mean={statistics.mean(orig_dists):.4f}  "
+        f"median={statistics.median(orig_dists):.4f}"
+    )
+    print(
+        f"Corrected (same held-out set + twins excluded):     mean={statistics.mean(corr_dists):.4f}  "
+        f"median={statistics.median(corr_dists):.4f}"
+    )
 
     coco_baseline_mean = after["coco"]["top1_distance_mean"]
     corrected_shift_pct = (statistics.mean(corr_dists) / coco_baseline_mean - 1) * 100
-    print(f"\nCorrected Indian top-1 distance is {corrected_shift_pct:+.1f}% vs COCO's own "
-          f"baseline ({coco_baseline_mean:.4f}) -- was {after['shift_pct']:+.1f}% uncorrected.")
+    print(
+        f"\nCorrected Indian top-1 distance is {corrected_shift_pct:+.1f}% vs COCO's own "
+        f"baseline ({coco_baseline_mean:.4f}) -- was {after['shift_pct']:+.1f}% uncorrected."
+    )
 
     with open(args.out, "w") as f:
         json.dump(

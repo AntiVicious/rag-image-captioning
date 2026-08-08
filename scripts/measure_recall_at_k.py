@@ -127,7 +127,9 @@ def run_variant(label, db_manager, queries, by_image, sample_ids, ks, max_k):
     for k in ks:
         print(f"  R@{k}: {recall[f'R@{k}']:.4f}  ({hits_at_k[k]}/{n})")
     if first_hit_ranks:
-        print(f"  median rank of first own-caption hit (when found): {statistics.median(first_hit_ranks):.1f}")
+        print(
+            f"  median rank of first own-caption hit (when found): {statistics.median(first_hit_ranks):.1f}"
+        )
     return {
         "n": n,
         "recall": recall,
@@ -194,13 +196,23 @@ def main():
     print(f"\nBaseline index: {db_baseline.get_stats()['total_embeddings']} embeddings (not held out)")
     results["baseline_unheld_out"] = run_variant(
         "baseline (unheld-out, real queries -- expected: self-match, not a result)",
-        db_baseline, real_queries, by_image, sample_ids, ks, max_k,
+        db_baseline,
+        real_queries,
+        by_image,
+        sample_ids,
+        ks,
+        max_k,
     )
 
     # --- random control: same un-held-out index, random-vector queries ---
     results["random_control"] = run_variant(
         "random control (unheld-out index, random-vector queries -- expected: ~chance floor)",
-        db_baseline, random_queries, by_image, sample_ids, ks, max_k,
+        db_baseline,
+        random_queries,
+        by_image,
+        sample_ids,
+        ks,
+        max_k,
     )
 
     # --- held-out: real queries against an index with the sample fully removed ---
@@ -209,12 +221,19 @@ def main():
     db_held_out.initialize()
     results["held_out"] = run_variant(
         "held-out (query images fully excluded -- expected: 0%, no ground truth exists to recall)",
-        db_held_out, real_queries, by_image, sample_ids, ks, max_k,
+        db_held_out,
+        real_queries,
+        by_image,
+        sample_ids,
+        ks,
+        max_k,
     )
 
     chance_floor = max_k / db_baseline.get_stats()["total_embeddings"]
-    print(f"\nChance floor for R@{max_k} on a {db_baseline.get_stats()['total_embeddings']}-embedding "
-          f"index (max_k/index_size, a rough sanity bound): {chance_floor:.5f}")
+    print(
+        f"\nChance floor for R@{max_k} on a {db_baseline.get_stats()['total_embeddings']}-embedding "
+        f"index (max_k/index_size, a rough sanity bound): {chance_floor:.5f}"
+    )
 
     print("\n=== Conclusion ===")
     print("baseline's high R@K measures embedding-pipeline self-consistency (the query image's own")

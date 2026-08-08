@@ -24,7 +24,9 @@ kept separate for that reason.
 from typing import List, Sequence
 
 
-def select_top1(documents_per_variant: Sequence[List[str]], distances_per_variant: Sequence[List[float]]) -> str:
+def select_top1(
+    documents_per_variant: Sequence[List[str]], distances_per_variant: Sequence[List[float]]
+) -> str:
     """Global best candidate across every variant queried, by ChromaDB
     distance. Each variant's own results are already distance-sorted
     ascending, so only each variant's first candidate can possibly win."""

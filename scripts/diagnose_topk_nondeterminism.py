@@ -15,15 +15,11 @@ in the top1-selection logic itself.
 Usage: same mounts as scripts/evaluate.py.
 """
 
-import json
 import os
-import random
 import sys
-from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.config import Config  # noqa: E402
 from src.database import DatabaseManager  # noqa: E402
 from src.image_preprocessing import ImagePreprocessor  # noqa: E402
 from src.models import ModelManager  # noqa: E402
@@ -84,7 +80,10 @@ def main():
                 }
             )
 
-    print(f"\n{len(mismatches)}/{len(eval_ids)} images: top-1 differs between n_results=1 and n_results=3 queries")
+    print(
+        f"\n{len(mismatches)}/{len(eval_ids)} images: top-1 differs between "
+        "n_results=1 and n_results=3 queries"
+    )
     for m in mismatches[:15]:
         print(f"  image_id={m['image_id']}")
         print(f"    k=1 top-1: dist={m['k1_dist']:.6f}  {m['k1_doc']!r}")
