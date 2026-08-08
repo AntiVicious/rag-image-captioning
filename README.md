@@ -10,6 +10,12 @@ Retrieval-Augmented Generation image captioning: CLIP embeddings + ChromaDB retr
 
 **How you consume a retrieved candidate pool matters as much as how you retrieve it — a claim that generalizes past this one system to RAG architectures broadly.** N=200, held-out split of COCO val2017, output length held constant across every cell (full table and reproduction commands in `results/README.md`):
 
+<p align="center">
+  <img src="assets/gallery_toggle.gif" alt="Flipping the demo gallery's selection-strategy and crop-config toggles for the same held-out image: top1/no-crops captions 'A man is enjoying his day of skiing, trying to stay up float.' (CIDEr 0.466); medoid/segmentation-crops captions 'a person skiing down a snowy hill side.' (CIDEr 2.132) against the same real COCO references." width="520">
+  <br>
+  <sub>Same image, same index — only the selection strategy and crop config change. From the <a href="https://rag-image-captioning-fxxzqkhwjuqyx5s6rthwxj.streamlit.app/">live demo</a>'s precomputed gallery.</sub>
+</p>
+
 | Selection → | top1 (nearest-neighbor) | medoid (consensus) |
 |---|---|---|
 | no crops | 0.469 CIDEr, 0.28s/image | 0.486 CIDEr, 0.47s/image |
@@ -54,6 +60,39 @@ Six numbers in this project were wrong at some point and got caught before shipp
 ## Architecture
 
 One image in. CLIP encodes it (and, if enabled, DETR-derived crops). ChromaDB returns the nearest captions on file per variant. `Config.selection_mode` picks ONE final caption out of that pool — `"medoid"` (the default: the candidate most similar, on average, to the rest of the pool, i.e. the consensus pick — the best-scoring strategy measured, see above) or `"top1"` (closest to the query image, simpler, scores a bit lower). That caption is either returned as-is (`caption_backend="retrieval"`, the default — no LLM, no GPU) or handed to a small BLIP captioner as conditioning context (`caption_backend="blip"` — BLIP base, ~247M params, CPU-feasible; not BLIP-2, which needs a GPU this project doesn't assume).
+
+```mermaid
+flowchart TD
+    subgraph offline["Offline: index building (scripts/evaluate.py, src/pipeline.py build_database_from_coco)"]
+        direction LR
+        COCO["COCO val2017<br/>images + captions"] --> CLIPenc1["CLIP ViT-B/32<br/>(encode once per image)"]
+        CLIPenc1 --> Chroma[("ChromaDB<br/>coco_clip_embeddings<br/>~5 caption rows/image,<br/>1 shared embedding")]
+    end
+
+    subgraph online["Online: caption a query image (src/rag_retrieval.py, src/generation.py)"]
+        Img["Query image"] --> Crops{"Crops enabled?"}
+        Crops -->|"enable_segmentation"| DETRseg["DETR panoptic<br/>segmentation crops"]
+        Crops -->|"enable_object_detection"| DETRobj["DETR object-detection<br/>crops"]
+        Crops -->|"both off"| Orig["original image only"]
+        DETRseg --> CLIPenc2["CLIP ViT-B/32<br/>(one batched encode,<br/>all variants)"]
+        DETRobj --> CLIPenc2
+        Orig --> CLIPenc2
+        CLIPenc2 --> Query["ChromaDB nearest-neighbor<br/>query, per variant"]
+        Query --> Select{"selection_mode"}
+        Select -->|"top1"| Top1["closest single candidate<br/>to the query image"]
+        Select -->|"medoid (default)"| Medoid["consensus candidate:<br/>most similar, on average,<br/>to the rest of the pool"]
+        Top1 --> Backend{"caption_backend"}
+        Medoid --> Backend
+        Backend -->|"retrieval (default)"| Out1["caption = the selected<br/>retrieved text, verbatim"]
+        Backend -->|"blip"| BLIP["BLIP v1<br/>conditioned on image +<br/>retrieved text as a seed phrase"]
+        Out1 --> Result["caption + match_distance<br/>(confidence signal)"]
+        BLIP --> Result
+    end
+
+    Chroma -.->|"queried against"| Query
+```
+
+The shipped default traces one path through this graph: `enable_segmentation` on, `selection_mode="medoid"`, `caption_backend="retrieval"` — the best-scoring config measured in the ablation above, and the config the demo's precomputed gallery shows.
 
 ## Status
 
