@@ -1,6 +1,6 @@
 """
-Throwaway diagnostic: shows BLIP-2's raw generation output before our
-prefix-stripping logic touches it. Run with your own image:
+Diagnostic: prints the caption model's raw output before prompt
+stripping. Usage:
 
     python diagnose_blip2.py path/to/image.jpg
 """
@@ -44,7 +44,7 @@ print("generated_ids shape:", generated_ids.shape)
 print("RAW decoded (with prompt if echoed):")
 print(repr(mm.blip2_processor.decode(generated_ids[0], skip_special_tokens=True)))
 
-# Also try WITHOUT our custom prompt, using BLIP-2's own documented simple style.
+# Also try a plain prompt.
 print("\n--- Now trying BLIP-2's own simple prompting style (no custom meta-prompt) ---")
 inputs2 = mm.blip2_processor(images=image, return_tensors="pt").to(mm.device)
 with torch.no_grad():

@@ -1,13 +1,9 @@
-"""
-Throwaway diagnostic, round 3: is chromadb .get()'s row order stable across
-separate calls / separate include lists? quantize_index.py fetches
-include=["embeddings"]; measure_quantization_downstream.py fetches
-include=["embeddings", "documents"]. Both then do
-rng.choice(n, size=200, replace=False) with the SAME seed to pick query
-rows -- but that samples POSITIONAL indices, not ids. If .get()'s row order
-differs between the two calls, the same seed would silently select
-different actual images in each script, which would fully explain a large
-divergence in results despite seemingly-identical logic.
+"""Diagnostic: checks whether ChromaDB's .get() returns rows in the same order
+across calls with different include lists.
+
+quantize_index.py and measure_quantization_downstream.py fetch with
+different include lists, then sample positional indices with the same seed.
+If the row order differed, the two scripts would use different queries.
 """
 
 import chromadb

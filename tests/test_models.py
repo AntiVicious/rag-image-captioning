@@ -1,8 +1,5 @@
-"""
-Tests for src/models.py that verify the lazy-loading contract WITHOUT
-triggering an actual CLIP weights download (~350MB) — that would make CI
-slow and flaky on network hiccups. A real download is exercised manually /
-in the smoke test instead, once one exists.
+"""Tests that src/models.py loads models lazily, without downloading the CLIP
+weights (~350 MB).
 """
 
 import os

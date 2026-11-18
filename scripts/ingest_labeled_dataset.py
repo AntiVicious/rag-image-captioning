@@ -1,26 +1,22 @@
-"""
-Ingest a HuggingFace image-classification dataset (parquet shards, an
-`image` column + a `label`/`target` column) into a COCO-shaped image
-directory + captions JSON, so it can be indexed through the existing
-`python -m src.cli build-db` path unchanged.
+"""Converts a Hugging Face image-classification dataset (parquet shards with an
+`image` column and a `label`/`target` column) into a COCO-style image
+directory and captions JSON, so it can be indexed with
+`python -m src.cli build-db`.
 
-Why template captions: no ready-made, naturally-captioned, COCO-scale
-Indian-context dataset currently exists (checked) -- what's available is
-either (a) Indian-LANGUAGE translations of COCO/Visual Genome's own
-Western-context images (solves language, not visual distribution shift),
-or (b) genuinely Indian-context images labeled only for classification.
-This script takes the (b) path and generates one template caption per
-class label -- a real limitation (no per-image variation), disclosed
-plainly rather than dressed up as natural captions.
+No COCO-scale captioned dataset of Indian-context images was available;
+existing options are either translations of COCO's own images or
+classification datasets. This script uses a classification dataset and
+generates one templated caption per class, so captions don't vary between
+images of the same class.
 
 Usage:
-    python scripts/ingest_labeled_dataset.py \
-        --repo-id bharat-raghunathan/indian-foods-dataset \
-        --files <comma-separated parquet paths, see the repo's data/ listing> \
-        --label-names <comma-separated class names, index-ordered> \
-        --caption-template captions_food.json \
-        --out-img-dir ./coco_indian/food \
-        --out-ann-file ./coco_indian/captions_food.json \
+    python scripts/ingest_labeled_dataset.py \\
+        --repo-id bharat-raghunathan/indian-foods-dataset \\
+        --files <comma-separated parquet paths> \\
+        --label-names <comma-separated class names, in index order> \\
+        --caption-template captions_food.json \\
+        --out-img-dir ./coco_indian/food \\
+        --out-ann-file ./coco_indian/captions_food.json \\
         --id-offset 90000000
 """
 

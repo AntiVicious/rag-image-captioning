@@ -5,8 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Separate, lighter layer: changes here don't invalidate the heavy
-# install above (see requirements-scripts.txt for why).
+# Separate layer so script dependencies don't invalidate the one above.
 COPY requirements-scripts.txt .
 RUN pip install --no-cache-dir -r requirements-scripts.txt
 

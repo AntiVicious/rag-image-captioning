@@ -1,29 +1,20 @@
-"""
-Does float16 quantization's ranking churn actually cost caption quality?
+"""Measures whether float16 quantization changes caption quality.
 
-scripts/quantize_index.py measures a precise but narrow thing: what fraction
-of the float32 top-10 set survives in the float16 top-10 set (8.45% doesn't
-survive, on the SAME 100k-embedding train2017 sample and 200 queries used
-here). That number alone doesn't say whether it matters -- COCO has ~5
-near-synonymous reference captions per image, so a top-1 "flip" to a
-different neighbour can easily swap one valid caption for another equally
-valid one. This script answers the actual downstream question: run the
-SAME 200 queries' single best (top-1) caption through float32 vs float16
-embeddings, score both against real COCO reference captions with the same
-pycocoevalcap suite as the main ablation, and report the delta -- plus a
-cleanly-defined top-1 flip rate (fraction of queries where float16's best
-match is a literally different embedding row than float32's), distinct
-from the top-10 set-overlap number already reported.
+quantize_index.py measures how much of the float32 top-10 set survives in
+float16. That alone doesn't show whether it matters: COCO has ~5 similar
+captions per image, so a different top-1 match may be equally good. This
+script takes the top-1 caption for the same 200 queries under float32 and
+float16, scores both against COCO references with pycocoevalcap, and
+reports the difference and the top-1 flip rate.
 
-Reuses the exact same 100k-embedding sample, seed, and self-exclusion
-methodology as quantize_index.py so the two results are directly
-comparable (same queries, same index, same held-out logic).
+It uses the same 100k-embedding sample, seed and exclusion logic as
+quantize_index.py, so the results are comparable.
 
-Usage (needs the eval image for pycocoevalcap/METEOR's Java dependency):
-    docker run --rm \
-      -v D:\\chroma_db_scale_test:/app/chroma_db_scale_test \
-      -v <clone>/coco/annotations:/app/coco_annotations \
-      -v <repo>/eval_output:/app/eval_output \
+Usage (the eval image provides Java for METEOR):
+    docker run --rm \\
+      -v /path/to/chroma_db_scale_test:/app/chroma_db_scale_test \\
+      -v /path/to/coco/annotations:/app/coco_annotations \\
+      -v /path/to/eval_output:/app/eval_output \\
       rag-image-captioning:eval python scripts/measure_quantization_downstream.py
 """
 
@@ -105,14 +96,9 @@ def main():
     print("Loading COCO reference captions...")
     by_image = load_annotations(args.coco_ann_file)
 
-    # ids are "{image_id}_{ann_id}" -- COCO stores ~5 caption rows per image,
-    # all sharing one embedding. Without excluding every sibling row (not
-    # just the sampled one), a query would almost always "retrieve" one of
-    # its own real captions via a sibling row for BOTH float32 and float16,
-    # scoring perfectly by construction and hiding the actual question this
-    # script exists to answer (what happens when a GENUINELY different
-    # neighbour gets swapped in). Same leakage class as elsewhere in this
-    # project; see scripts/quantize_index.py's docstring for the twin fix.
+    # ids are "{image_id}_{ann_id}". All ~5 caption rows of an image share
+    # one embedding, so every row of the query's image must be excluded, or
+    # the query retrieves its own captions.
     image_ids = np.array([gid.split("_")[0] for gid in ids])
 
     rng = np.random.RandomState(args.seed)
@@ -134,8 +120,7 @@ def main():
 
     for qi, row in enumerate(query_rows):
         image_id = int(ids[row].split("_")[0])
-        # skip if this image_id has no reference captions in this ann file
-        # (shouldn't happen for train2017 image_ids, but guard anyway)
+        # skip images without reference captions
         if image_id not in by_image:
             continue
         query_image_ids.append(image_id)

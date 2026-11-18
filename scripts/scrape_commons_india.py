@@ -1,28 +1,22 @@
-"""
-Pull a diverse set of genuinely Indian-context photographs from
-Wikimedia Commons via its API -- NOT arbitrary web scraping. Commons
-hosts only media under structured, verified open licenses (CC0/CC-BY/
-CC-BY-SA/public domain), with per-file author/license/source metadata,
-which is exactly what makes this legitimate to reuse (the same source
-the Tamil Nadu bus dataset we found earlier was built from).
+"""Downloads Indian-context photographs from Wikimedia Commons through its API.
+Commons files carry open licences (CC0, CC-BY, CC-BY-SA or public domain)
+with per-file author and licence metadata, which is written to an
+attribution file.
 
-Spans many categories (festivals, markets, temples, clothing, transport,
-streets) rather than one theme, since food alone was judged insufficient
-distribution-shift coverage. Captions: uses each file's own Commons
-description when it reads like real English prose; falls back to a
-category-derived template otherwise -- both are real, disclosed
-limitations of scraped/weakly-labeled data, not hidden.
+Covers many categories (festivals, markets, temples, clothing, transport,
+streets). Captions use each file's Commons description when it reads as an
+English sentence, and a category-based template otherwise.
 
-Respects Wikimedia API etiquette: descriptive User-Agent, rate-limited
-requests, exponential backoff on 429s.
+Follows Wikimedia API etiquette: descriptive User-Agent, rate limiting and
+exponential backoff on HTTP 429.
 
 Usage:
-    python scripts/scrape_commons_india.py \
-        --out-img-dir ./coco_indian/commons/images \
-        --out-ann-file ./coco_indian/commons/captions_commons.json \
-        --out-attribution-file ./coco_indian/commons/attribution.jsonl \
-        --id-offset 91000000 \
-        --total-target 10000 \
+    python scripts/scrape_commons_india.py \\
+        --out-img-dir ./coco_indian/commons/images \\
+        --out-ann-file ./coco_indian/commons/captions_commons.json \\
+        --out-attribution-file ./coco_indian/commons/attribution.jsonl \\
+        --id-offset 91000000 \\
+        --total-target 10000 \\
         --per-category-cap 700
 """
 
@@ -128,10 +122,10 @@ def _list_subcategories(session, category, limit=20):
 
 
 def list_category_files(session, category, cap):
-    """Direct files in the category; if that's not enough to fill cap,
-    many Commons categories (e.g. Diwali, Indian weddings) organize
-    everything into subcategories with zero files directly in the parent
-    -- so also pull from a handful of first-level subcategories."""
+    """Files directly in the category, plus files from a few first-level
+    subcategories, since many categories (e.g. Diwali) keep all files in
+    subcategories.
+    """
     titles = _list_direct_files(session, category, cap)
     if len(titles) >= cap:
         return titles
@@ -148,12 +142,10 @@ def list_category_files(session, category, cap):
 
 
 def fetch_image_info(session, titles):
-    """Batch imageinfo lookup, 50 titles per call (Commons API limit).
+    """Batch imageinfo lookup, 50 titles per call (the API limit).
 
-    iiurlwidth=800 asks the API to also return a pre-sized 800px-wide
-    thumbnail URL (thumburl) -- Wikimedia's own 429 error message for
-    bulk original-file downloads explicitly asks callers to use
-    thumbnails instead, so that's what download_image() prefers.
+    iiurlwidth=800 also returns an 800px thumbnail URL, which Wikimedia asks
+    bulk downloaders to use instead of original files.
     """
     results = {}
     for i in range(0, len(titles), 50):
@@ -179,10 +171,9 @@ def fetch_image_info(session, titles):
 
 
 def download_image(session, info, retries=5):
-    """Download the thumbnail (preferred -- see fetch_image_info) or, if
-    none was returned, the full original. Rate-limited the same way as
-    API calls: Wikimedia's upload/thumbnail CDN enforces its own 429s,
-    independent of the api.php rate limit."""
+    """Download the thumbnail if available, otherwise the original file.
+    Rate-limited like API calls, since the media CDN has its own limits.
+    """
     url = info.get("thumburl") or info["url"]
     for attempt in range(retries):
         resp = session.get(url, headers=HEADERS, timeout=30)

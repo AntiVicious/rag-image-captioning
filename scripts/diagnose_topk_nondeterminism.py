@@ -1,16 +1,10 @@
-"""
-Throwaway diagnostic for a warning evaluate.py raised on its own: the
-retrieval-only ablation row (output-mode top1, n_results=captions_per_crop=3,
-takes the first/closest of the 3) and the top1-verbatim baseline (n_results=1)
-query the SAME held-out index with the SAME single-image embedding, and
-should therefore always return the same top-1 document -- but their CIDEr
-scores disagreed (0.5043 vs 0.4704) on the N=200 corrected ablation run.
+"""Diagnostic: the retrieval-only ablation row (top1 mode, n_results=3, taking
+the closest) and the top1-verbatim baseline (n_results=1) query the same
+index with the same embedding, yet scored differently (CIDEr 0.5043 vs
+0.4704).
 
-Hypothesis: chromadb's HNSW approximate-nearest-neighbour search does not
-guarantee the same top-1 result for different requested n_results (ef-search
-scales with k), so asking for top-3 vs top-1 against the same index can
-legitimately return a different closest match on ties/near-ties -- not a bug
-in the top1-selection logic itself.
+Hypothesis: ChromaDB's HNSW search can return a different top-1 among tied
+candidates depending on the requested n_results.
 
 Usage: same mounts as scripts/evaluate.py.
 """

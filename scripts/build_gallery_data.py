@@ -1,26 +1,17 @@
-"""
-Assembles the demo's precomputed gallery: merges the two evaluate.py runs
-(--output-mode top1 and --output-mode medoid, same --num-eval-images/--seed
-so they cover the identical image set) into one demo/gallery_data.json, and
-copies+downsizes the source images into demo/gallery_images/ so the demo
-never needs the full COCO dataset on disk.
+"""Builds the demo's precomputed gallery.
 
-Why this exists: the live-upload demo path can only run the retrieval-only
-backend on Streamlit Community Cloud's free tier (no transformers/DETR, no
-RAM for it -- see demo/demo_app.py's docstring), so a visitor uploading a
-photo never sees the project's actual best-scoring config (medoid +
-segmentation crops) or the crop ablation this project's whole headline
-finding is about. Precomputing all 8 configs (2 selection strategies x 4
-crop configs) offline for a fixed image set and shipping the JSON lets the
-demo render the real, best-scoring pipeline's output with zero runtime
-model-loading cost.
+Merges two evaluate.py runs (--output-mode top1 and medoid, with the same
+--num-eval-images and --seed) into demo/gallery_data.json, and copies resized
+images into demo/gallery_images/. The free hosting tier can't run DETR, so
+this lets the demo show all 8 configurations, including the best one,
+without loading models.
 
 Usage:
-    python scripts/build_gallery_data.py \
-        --coco-img-dir /path/to/coco/val2017 \
-        --coco-ann-file /path/to/coco/annotations/captions_val2017.json \
-        --top1-json eval_output/gallery_top1.json \
-        --medoid-json eval_output/gallery_medoid.json \
+    python scripts/build_gallery_data.py \\
+        --coco-img-dir /path/to/coco/val2017 \\
+        --coco-ann-file /path/to/coco/annotations/captions_val2017.json \\
+        --top1-json eval_output/gallery_top1.json \\
+        --medoid-json eval_output/gallery_medoid.json \\
         --out-dir demo
 """
 
@@ -30,7 +21,7 @@ import os
 
 from PIL import Image
 
-# display name -> key evaluate.py's ABLATIONS actually uses in its output JSON
+# display name -> key used in evaluate.py's output JSON
 CROP_CONFIG_JSON_KEYS = {
     "retrieval-only": "retrieval-only",
     "segmentation": "+segmentation",

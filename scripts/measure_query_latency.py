@@ -1,9 +1,8 @@
-"""
-Measure ChromaDB query latency (p50/p95) at a given index scale, using
-real CLIP embeddings from a sample of images.
+"""Measures ChromaDB query latency (p50/p95) at a given index size, using CLIP
+embeddings of sample images.
 
 Usage:
-    python scripts/measure_query_latency.py --chroma-db-dir ./chroma_db_scale_test \
+    python scripts/measure_query_latency.py --chroma-db-dir ./chroma_db_scale_test \\
         --coco-img-dir ./coco/train2017 --num-queries 200
 """
 

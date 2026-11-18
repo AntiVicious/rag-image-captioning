@@ -8,7 +8,7 @@ dist_shift_output/
 *.bin
 *.safetensors
 
-# Throwaway images from manual/diagnostic testing
+# Manual test images
 smoke_test_image.jpg
 
 # Python
@@ -25,8 +25,7 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Logs -- ad hoc `docker ... | Tee-Object -FilePath foo_log.txt` debug output,
-# not source; *.log alone doesn't cover these since they're saved as .txt
+# Logs (including *_log.txt run output)
 logs/
 *.log
 *_log*.txt

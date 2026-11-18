@@ -13,7 +13,7 @@ from src.caption_aggregation import aggregate_captions  # noqa: E402
 
 
 def test_no_word_level_dedup():
-    # Sentences sharing words must stay intact, not collapse into a word-bag.
+    # Sentences that share words must stay intact.
     blocks = ["a dog runs in the grass.", "a cat sits in the grass."]
     result = aggregate_captions(blocks)
     assert "a dog runs in the grass." in result

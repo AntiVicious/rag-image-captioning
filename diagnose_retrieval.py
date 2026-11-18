@@ -1,6 +1,6 @@
 """
-Throwaway diagnostic: shows whether ChromaDB has any captions indexed, and
-what RAGRetriever actually retrieves for a given image.
+Diagnostic: shows whether ChromaDB has captions indexed and what
+RAGRetriever retrieves for an image.
 
     python diagnose_retrieval.py path/to/image.jpg
 """

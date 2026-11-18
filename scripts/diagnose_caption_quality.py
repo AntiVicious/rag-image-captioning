@@ -1,9 +1,6 @@
-"""
-Throwaway diagnostic: reproduce the exact demo pipeline (retrieval-only,
-medoid selection, no crops, default_top_k=5) against real, diverse,
-out-of-corpus test images, and print the raw retrieved candidates +
-distances -- not just the final caption -- so a bad result can be diagnosed
-instead of just observed.
+"""Diagnostic: runs the demo pipeline (retrieval-only, medoid selection, no
+crops, default_top_k=5) on test images and prints the retrieved candidates
+and distances as well as the final caption.
 
 Usage: python scripts/diagnose_caption_quality.py /app/test_images/*.jpg
 """
