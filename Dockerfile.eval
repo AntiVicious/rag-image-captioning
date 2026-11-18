@@ -1,8 +1,5 @@
-# Evaluation image: layers a JRE (needed by pycocoevalcap's METEOR scorer
-# and PTBTokenizer, both of which shell out to a bundled Java jar) and the
-# eval-only Python deps on top of the already-built app image. Kept
-# separate from the main Dockerfile so the production/demo image doesn't
-# carry a JRE or eval-only NLP dependencies it never needs.
+# Evaluation image: adds Java (for pycocoevalcap's METEOR scorer and
+# tokenizer) and evaluation dependencies on top of the app image.
 FROM rag-image-captioning:local
 
 RUN apt-get update \

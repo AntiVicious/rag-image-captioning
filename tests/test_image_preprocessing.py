@@ -1,7 +1,5 @@
-"""
-Tests for src/image_preprocessing.py that verify the lazy-loading contract
-and the crop math directly, WITHOUT downloading the DETR checkpoints
-(~170MB+ each). A real segmentation/detection run belongs in the smoke test.
+"""Tests lazy loading and crop calculations in src/image_preprocessing.py
+without downloading the DETR checkpoints.
 """
 
 import os

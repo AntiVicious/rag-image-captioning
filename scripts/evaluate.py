@@ -1,47 +1,36 @@
-"""
-Ablation evaluation: BLEU-4, METEOR, ROUGE-L, CIDEr, CLIPScore on a held-out
-split of COCO val2017, across four retrieval configurations:
+"""Ablation evaluation: BLEU-4, METEOR, ROUGE-L, CIDEr and CLIPScore on a
+held-out split of COCO val2017, for four retrieval configurations:
 
     retrieval-only      -- CLIP query on the original image only
-    +segmentation       -- + top segmentation crops (DETR panoptic)
-    +object-detection   -- + top object-detection crops (DETR)
-    all-seven           -- both crop types together
+    +segmentation       -- plus DETR panoptic segmentation crops
+    +object-detection   -- plus DETR object-detection crops
+    all-seven           -- both crop types
 
-plus two baseline rows that are NOT part of the crop ablation:
+and two baselines:
 
-    generic-floor       -- a single fixed caption for every image, no
-                            retrieval at all -- the score floor: what "zero
-                            information" looks like on these metrics.
-    top1-verbatim       -- the single nearest-neighbour caption for the
-                            original (uncropped) image, returned as-is, no
-                            aggregation. The obvious baseline the crop
-                            ablations should be beating.
+    generic-floor       -- the same fixed caption for every image (score
+                           with no information)
+    top1-verbatim       -- the nearest-neighbour caption for the uncropped
+                           image, computed independently as a check on the
+                           retrieval-only row
 
-Output length is held constant across every row: --output-mode top1
-(the default) makes every config emit exactly one caption -- the single
-retrieved candidate with the lowest ChromaDB distance across all variants
-queried -- rather than concatenating every variant's top-k candidates via
-aggregate_captions(). The original --output-mode aggregated is kept for
-reference/reproducibility of the earlier (length-confounded) numbers, but
-is no longer the default: n-gram metrics like CIDEr are extremely sensitive
-to candidate length, so comparing configs that emit different amounts of
-text was comparing length, not retrieval quality. See CLAUDE.md / the
-walkthrough doc for the corrected numbers and why the old CIDEr=~0 result
-for all-seven was a length artifact, not (only) evidence crops hurt.
+Output length is held constant: in --output-mode top1 (default) or medoid,
+every configuration returns exactly one caption. --output-mode aggregated
+concatenates candidates and is kept only to reproduce earlier results;
+n-gram metrics such as CIDEr are very sensitive to output length, so it
+doesn't give a fair comparison.
 
-Held-out split (avoids retrieval self-match leakage): --num-eval-images
-image_ids are sampled deterministically (--seed) from val2017 and their
-embeddings are DELETED from a *copy* of chroma_db before scoring, so
-retrieval can never return the query image's own captions. The remaining
-images serve as the retrieval corpus. The live chroma_db used by the app
-is never touched -- this script operates on ./chroma_db_eval.
+Held-out split: --num-eval-images images are sampled with --seed and their
+embeddings are deleted from a copy of the index (./chroma_db_eval), so
+retrieval can't return the query image's own captions. The original index
+isn't modified.
 
-Also records per-stage latency (DETR segmentation / DETR object detection /
-CLIP encode / Chroma query / aggregate) as a side effect of the same run.
+Per-stage latency (DETR, CLIP encoding, ChromaDB query, aggregation) is
+recorded in the same run.
 
 Usage:
     python scripts/evaluate.py --num-eval-images 200 --seed 42
-    python scripts/evaluate.py --output-mode aggregated  # old, length-confounded behavior
+    python scripts/evaluate.py --output-mode aggregated
     python scripts/evaluate.py --debug-print-config all-seven --debug-print-n 10
 """
 
@@ -71,19 +60,13 @@ ABLATIONS = [
     ("all-seven", True, True),
 ]
 
-# The score floor: a single fixed caption emitted for every image, regardless
-# of content. Any config that doesn't clearly beat this isn't adding value.
+# Fixed caption for the generic-floor baseline.
 GENERIC_FLOOR_CAPTION = "a photo of a scene"
 
-# CLIPScore (Hessel et al. 2021, https://arxiv.org/abs/2104.08718): reference-
-# free cosine similarity between a caption's CLIP text embedding and the
-# query image's CLIP embedding, rescaled. Computed here with the same
-# open_clip ViT-B-32/openai backbone already loaded for retrieval (the
-# paper's own reference implementation also defaults to ViT-B/32), so it's
-# measuring similarity in the exact embedding space this system retrieves
-# in. Unlike BLEU/METEOR/ROUGE-L/CIDEr it does not collapse as candidate
-# length changes, which is what makes it the right metric for comparing
-# configs whose outputs differ in length.
+# CLIPScore (Hessel et al. 2021, https://arxiv.org/abs/2104.08718): rescaled
+# cosine similarity between the caption's and the image's CLIP embeddings,
+# using the same ViT-B-32 model as retrieval. It needs no references and is
+# less sensitive to caption length than the n-gram metrics.
 CLIPSCORE_WEIGHT = 2.5
 
 
@@ -110,8 +93,9 @@ def pick_eval_split(by_image, num_eval, seed):
 
 
 def prepare_eval_index(source_db_dir, eval_db_dir, by_image, eval_ids):
-    """Copy chroma_db -> chroma_db_eval, then delete the eval images' own
-    embeddings from the copy so retrieval can't self-match."""
+    """Copy chroma_db to chroma_db_eval and delete the evaluation images'
+    embeddings from the copy.
+    """
     if os.path.exists(eval_db_dir):
         shutil.rmtree(eval_db_dir)
     shutil.copytree(source_db_dir, eval_db_dir)
@@ -139,19 +123,17 @@ def clip_score(image_embedding, caption, model_manager):
 
 
 def get_random_crops(image, n, seed_key):
-    """Control for the DETR-crop ablation: n "dumb" crops at random scale/
-    position, no object/segment awareness at all. Deterministic per image
-    (seeded on seed_key, e.g. the image_id) so repeat runs are reproducible.
-    If DETR-aware crops and blind random crops score the same, the finding
-    upgrades from "DETR crops specifically don't help" to "crop-based
-    grounding doesn't help regardless of how the crops are chosen" -- a
-    stronger, cheaper-to-support claim."""
+    """Random crops as a control for the DETR crops.
+
+    n crops at random scale and position, seeded per image for
+    reproducibility. Comparing them with DETR crops shows whether DETR's
+    choice of regions matters or any crops have the same effect.
+    """
     rng = random.Random(seed_key)
     w, h = image.size
     crops = []
     for _ in range(n):
-        # each crop covers 40-80% of each dimension, placed at a random
-        # valid offset -- "dumb" on purpose: no notion of what's IN the crop
+        # each crop covers 40-80% of each dimension at a random position
         crop_w = max(1, int(w * rng.uniform(0.4, 0.8)))
         crop_h = max(1, int(h * rng.uniform(0.4, 0.8)))
         x0 = rng.randint(0, max(0, w - crop_w))
@@ -189,19 +171,12 @@ def instrumented_retrieve(
     embeddings = model_manager.encode_image(batch)
     t_b = time.perf_counter()
     query_embeddings = embeddings.cpu().numpy().tolist()
-    # top1 mode only ever looks at each variant's closest candidate (index 0),
-    # so request n_results=1 directly rather than captions_per_crop and
-    # discarding the rest. This also sidesteps a real tie-breaking quirk: a
-    # COCO image's ~5 captions all share one embedding, so when the nearest
-    # neighbour is a COCO image there are multiple candidates tied at the
-    # EXACT same distance, and which one chromadb/hnswlib returns at index 0
-    # was observed to depend on the requested n_results (see
-    # scripts/diagnose_topk_nondeterminism.py -- 145/200 images differed
-    # between n_results=1 and n_results=3 queries, always at distance delta
-    # 0.000000, i.e. a tie-break artifact, not a different nearest image).
+    # top1 mode only needs each variant's closest candidate, so request one
+    # result. A COCO image's ~5 captions share one embedding and tie exactly,
+    # and which tied caption ChromaDB returns first depended on n_results
+    # (145/200 images; see scripts/diagnose_topk_nondeterminism.py).
     top_k = 1 if output_mode == "top1" else config.captions_per_crop
-    # medoid needs a real candidate pool to choose a consensus from, same as
-    # aggregated mode's pool size -- only top1 can shrink the query to k=1.
+    # medoid and aggregated modes need several candidates.
     results = db_manager.query_similar(query_embeddings, top_k)
     t_c = time.perf_counter()
 
@@ -227,10 +202,7 @@ def instrumented_retrieve(
     t_agg1 = time.perf_counter()
     timings["aggregate"].append(t_agg1 - t_agg0)
 
-    # CLIPScore against the ORIGINAL (uncropped) image embedding -- variants[0]
-    # -- regardless of how many crop variants contributed to retrieval, so the
-    # metric always answers the same question: "does the produced caption
-    # describe THIS image."
+    # CLIPScore always uses the uncropped image embedding (variants[0]).
     score = clip_score(embeddings[0:1], caption, model_manager) if caption else 0.0
     timings["clipscore"].append(score)
 
@@ -240,11 +212,8 @@ def instrumented_retrieve(
 def score_with_pycocoevalcap(predictions, by_image, eval_ids):
     """Returns (corpus-level scores, per-image scores keyed by image_id).
 
-    Per-image alignment: gts/res are built by iterating sorted(eval_ids), and
-    pycocoevalcap's scorers iterate gts.keys() (dict insertion order,
-    preserved since Python 3.7) internally, so the per-image score lists
-    they return line up with sorted(eval_ids) -- NOT the original (unordered)
-    eval_ids set.
+    gts and res are built in sorted(eval_ids) order, and the scorers keep
+    dict order, so per-image scores line up with sorted(eval_ids).
     """
     from pycocoevalcap.bleu.bleu import Bleu
     from pycocoevalcap.cider.cider import Cider
@@ -278,9 +247,7 @@ def score_with_pycocoevalcap(predictions, by_image, eval_ids):
 
 
 def run_generic_floor(eval_ids, img_paths, model_manager, preprocessor):
-    """Score floor baseline: the SAME fixed caption for every image, no
-    retrieval at all. Tells us what "zero information" scores as -- any
-    ablation config that doesn't clearly clear this isn't adding value."""
+    """Baseline: the same fixed caption for every image, no retrieval."""
     predictions = {}
     clip_scores = []
     for img_id in sorted(eval_ids):
@@ -296,13 +263,11 @@ def run_generic_floor(eval_ids, img_paths, model_manager, preprocessor):
 
 
 def run_top1_verbatim(eval_ids, img_paths, model_manager, db_manager, preprocessor):
-    """The obvious baseline the crop ablations need to beat: single nearest-
-    neighbour caption for the ORIGINAL uncropped image, returned verbatim --
-    no crops, no aggregation, n_results=1. (Should numerically match the
-    retrieval-only ablation row run with --output-mode top1: that row already
-    reduces to exactly this once output length is controlled. Computed here
-    independently as a sanity check on that -- if the two diverge, something
-    in the ablation loop's top1 selection is broken.)"""
+    """Baseline: the nearest-neighbour caption for the uncropped image.
+
+    Should match the retrieval-only row in top1 mode; it is computed
+    separately as a check on that row.
+    """
     predictions = {}
     clip_scores = []
     t_start = time.perf_counter()
@@ -323,9 +288,9 @@ def run_top1_verbatim(eval_ids, img_paths, model_manager, db_manager, preprocess
 
 
 def debug_print_pairs(name, predictions, by_image, eval_ids, n):
-    """Print raw candidate/reference pairs BEFORE pycocoevalcap tokenizes
-    them, so a suspiciously extreme score (e.g. CIDEr ~1e-9) can be eyeballed
-    against the actual text instead of trusted at face value."""
+    """Print candidate and reference captions before tokenisation, to
+    inspect extreme scores.
+    """
     print(f"\n--- raw candidate/reference pairs: {name} (first {n}) ---")
     for img_id in sorted(eval_ids)[:n]:
         if img_id not in predictions:
@@ -443,11 +408,8 @@ def main():
 
     rows = [(name, seg, obj, 0) for name, seg, obj in ablations]
     if args.random_crop_control:
-        # Same variant COUNT as all-seven (up to 6 non-original crops, i.e.
-        # 7 total) but chosen blind -- no DETR, no notion of what's in the
-        # crop. Tests whether it's specifically DETR's crop *selection* that
-        # hurts, or crop-based grounding hurting regardless of how crops are
-        # chosen (a stronger, cheaper-to-support claim if this also loses).
+        # Same number of variants as all-seven (7), but random crops instead
+        # of DETR's.
         rows.append(("+random-crops", False, False, 6))
 
     for name, seg, obj, random_crop_n in rows:

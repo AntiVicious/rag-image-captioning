@@ -1,6 +1,5 @@
-"""
-Tests for src/cli.py argument parsing and config building — never invokes
-Pipeline.setup()/caption_image(), so no real model/database work happens.
+"""Tests src/cli.py argument parsing and config building without running the
+pipeline.
 """
 
 import os
@@ -64,12 +63,9 @@ def test_build_config_disables_detr_on_skip_flag():
 
 
 def test_build_config_leaves_defaults_by_default():
-    """Config.enable_segmentation defaults True / enable_object_detection
-    defaults False (see src/config.py): under selection_mode="medoid" (also
-    the default), +segmentation is the best-scoring config measured in this
-    project, while adding object-detection on top of it scores worse than
-    segmentation alone. --skip-detr overrides both to False for anyone who
-    wants the faster, slightly-lower-scoring path instead."""
+    """Defaults: segmentation on and object detection off (the best measured
+    configuration with medoid selection). --skip-detr turns both off.
+    """
     parser = build_parser()
     args = parser.parse_args(["caption", "--image", "foo.jpg"])
     config = _build_config(args)

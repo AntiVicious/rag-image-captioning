@@ -1,37 +1,24 @@
-"""
-Near-duplicate audit on the Indian-context image set, and a corrected
-distribution-shift re-measurement that excludes near-duplicate leakage.
+"""Near-duplicate audit of the Indian-context images, and a distribution-shift
+measurement that excludes near-duplicates.
 
-Motivation: scripts/measure_distribution_shift.py's "after augmentation"
-run reported Indian top-1 distance beating COCO's own baseline (0.162 vs
-0.352 mean) -- and 54/200 (27%) of the sampled Indian query images had
-top-1 distance suspiciously close to 0.0 (see dist_shift_output/
-distribution_shift_after2.json). That is not evidence retrieval got better;
-it's evidence the Indian set (particularly the Indian Foods dataset, which
-uses one templated caption per dish class across ~300 photos/class) contains
-near-duplicate images that trivially retrieve each other regardless of
-templated captions, and the original held-out logic only excluded a query
-image's OWN embedding, not its near-duplicate twins elsewhere in the index.
+An earlier "after augmentation" run showed Indian images retrieving closer
+matches than COCO's own baseline, with 27% of queries at a distance near 0.
+The cause was near-duplicate images (especially in the food dataset, which
+has one templated caption per dish and ~300 photos per dish) retrieving each
+other, because only each query's own embedding was excluded.
 
-This script:
-  1. Pulls every embedding out of the augmented ChromaDB collection directly
-     (no CLIP/DETR inference needed -- the embeddings are already computed
-     and stored).
-  2. Computes full pairwise cosine similarity within the Indian subset
-     (embeddings are unit-normalised, so cosine sim = dot product).
-  3. Flags pairs above --threshold (default 0.95) as near-duplicates and
-     unions them into clusters (union-find).
-  4. Cross-references the same 200-image Indian query sample used by
-     measure_distribution_shift.py's "after" run (read directly from its
-     output JSON, not re-derived) against those clusters.
-  5. Re-measures top-1 distance for that query set with near-dup twins
-     ALSO excluded from the index (not just the query image itself) --
-     entirely in numpy, since all embeddings are already in memory.
+Steps:
+  1. Read all embeddings from the augmented ChromaDB collection.
+  2. Compute pairwise cosine similarity within the Indian subset.
+  3. Group pairs above --threshold (default 0.95) into clusters.
+  4. Match the 200-image query sample from the earlier run (read from its
+     output JSON) against the clusters.
+  5. Re-measure top-1 distance with each query's near-duplicates also
+     removed from the index.
 
-Usage (run inside the eval/app Docker image so chromadb matches the version
-that built the index):
-    docker run --rm -v D:\\chroma_db_augmented:/app/chroma_db_augmented \\
-      -v <repo>/dist_shift_output:/app/dist_shift_output \\
+Run inside the Docker image so the chromadb version matches the index:
+    docker run --rm -v /path/to/chroma_db_augmented:/app/chroma_db_augmented \\
+      -v /path/to/dist_shift_output:/app/dist_shift_output \\
       rag-image-captioning:eval python scripts/audit_near_duplicates.py
 """
 
@@ -46,8 +33,7 @@ INDIAN_ID_RE = re.compile(r"^(\d+)_\1$")
 
 
 def fetch_all(collection):
-    """chromadb .get() with no ids/where returns everything; embeddings come
-    back as a list of lists, fetched in one call since 37,552 rows is small."""
+    """Return every row in the collection (37,552 rows, small enough for one call)."""
     result = collection.get(include=["embeddings", "documents"])
     return result["ids"], np.array(result["embeddings"], dtype=np.float32), result["documents"]
 
@@ -96,7 +82,7 @@ def main():
     print(f"Fetching all {collection.count()} embeddings...")
     ids, embeddings, documents = fetch_all(collection)
 
-    # unit-normalise defensively (should already be normalised at write time)
+    # normalise in case stored embeddings aren't
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
     embeddings = embeddings / np.clip(norms, 1e-8, None)
 
@@ -165,18 +151,12 @@ def main():
         f"have a >= {args.threshold} twin elsewhere in the index."
     )
 
-    # --- 3. Corrected distance re-measurement: exclude twins, not just self ---
-    # Must replicate the ORIGINAL held-out setup exactly (a single fixed index
-    # with ALL 200 COCO query images' rows AND all 200 Indian query images'
-    # rows removed -- prepare_held_out_index() in measure_distribution_shift.py
-    # does this as one batch exclusion, not per-query) and then, on top of
-    # that SAME fixed index, additionally remove near-dup twins. Excluding
-    # twins per-query against the full unfiltered index (as an earlier version
-    # of this script did) accidentally left the other 199 held-out Indian
-    # images and 200 held-out COCO images available as candidates -- a laxer
-    # index than the original measurement used, which silently produces a
-    # BETTER-looking (lower) distance for reasons that have nothing to do
-    # with deduplication. Caught by a sanity check below, not assumed away.
+    # --- 3. Re-measure with near-duplicates excluded ---
+    # Start from the same index as the original measurement (all 400 query
+    # images removed at once), then also remove each query's near-duplicates.
+    # Starting from the full index instead would leave the other query images
+    # as candidates and lower the distances for unrelated reasons; the check
+    # below verifies the baseline is reproduced.
     coco_query_ids = {int(r["file"].split(".")[0]) for r in after["coco_records"]}
     indian_query_ids = set(query_image_ids)
 
@@ -227,14 +207,8 @@ def main():
             replication_records.append(rec)
             corrected_records.append(rec)
             continue
-        # chromadb's default distance space here is squared L2, not (1 - cosine).
-        # For unit-normalised embeddings ||a-b||^2 == 2 - 2*cos(a,b), which is
-        # exactly double (1 - cos) -- confirmed empirically: an earlier version
-        # of this script reported "1 - cos" and its replication-check mean came
-        # out at precisely half the original stored value (0.0812 vs 0.1624).
-        # argmax(cos) still correctly identifies the nearest neighbour either
-        # way (it's a monotonic rescaling); only the reported magnitude needed
-        # the factor of 2.
+        # ChromaDB uses squared L2 distance; for unit vectors that equals
+        # 2 - 2*cos(a, b), so convert to match its values.
         rep_sim, rep_doc = query_against(replication_mask, local_i)
         replication_records.append(
             {"file": rec["file"], "top1_distance": 2.0 * (1.0 - rep_sim), "top1_caption": rep_doc}

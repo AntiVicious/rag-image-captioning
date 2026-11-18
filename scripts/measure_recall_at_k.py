@@ -1,55 +1,28 @@
-"""
-Recall@K diagnostic -- NOT a clean retriever-quality metric, and the
-original version of this script wrongly claimed it was.
+"""Recall@K diagnostic. Shows that Recall@K is not a meaningful retrieval
+metric for this system; an earlier version reported 99% by mistake.
 
-The original R@1=R@5=R@10=99.0% result was a self-match artifact, not
-evidence of retrieval quality: the query image's own embedding was never
-excluded from the index, and every caption for an image shares ONE stored
-CLIP image embedding (captions aren't independently embedded -- this
-system retrieves nearest IMAGES, not nearest TEXTS, and passes through
-whichever image's captions it lands on). Re-encoding an image and
-searching an index that already contains that exact image's embedding is
-trivially guaranteed to find itself first; that measures pipeline
-determinism, not "does the retriever find relevant neighbours."
+All captions of an image share one stored image embedding, so a query image
+searched against an index that still contains it finds itself first. Three
+variants make this explicit:
 
-This script now runs three variants to make that explicit instead of
-asserting it, per a review of the original result:
+  baseline  -- real queries against the full index. Near 100%: the
+               self-match.
+  held-out  -- the same queries with all of their images' rows (all ~5
+               captions) deleted from a copy of the index. No correct item
+               remains, since COCO has no cross-image relevance labels, so
+               the score is 0%.
+  random    -- random unit vectors against the full index. Near the chance
+               floor (~max_k / index_size), confirming the baseline's 99%
+               comes only from the self-match.
 
-  baseline      -- original (broken) setup: real image queries against the
-                   UN-held-out index. Expected: near-100%, and that's the
-                   self-match artifact, not a result.
-  held-out      -- the SAME query images, but with every one of their
-                   annotation rows (all ~5 captions -- they all share one
-                   embedding, so removing only one caption row leaves the
-                   image just as findable via a sibling row) deleted from a
-                   *copy* of the index first. Once genuinely absent, there
-                   is no ground-truth "correct" caption left to recall --
-                   COCO has no cross-image relevance judgments -- so this
-                   variant cannot score anything but 0% by the same
-                   criterion, and that's the point: it demonstrates baseline's
-                   99% depended entirely on the leak, not on evidence a
-                   different, merely-similar image's caption was "close
-                   enough."
-  random        -- baseline's (un-held-out) index, but queried with random
-                   unit vectors instead of real image embeddings. If this
-                   ALSO comes back near 100%, the index/query wiring itself
-                   is broken (matches anything, not just self). If it's
-                   near the chance floor (~max_k / index_size), that
-                   confirms baseline's 99% is specifically the self-match
-                   leak and nothing else is wrong with the measurement path.
-
-Conclusion this script is expected to support: there is no valid, non-
-trivial Recall@K claim to make about this system as originally framed.
-What retrieval-quality evidence this project actually has lives in the
-held-out ablation (scripts/evaluate.py) and distribution-shift
-(scripts/measure_distribution_shift_v2.py) work, which score retrieved
-CAPTION TEXT against real references/distances under a proper hold-out --
-not "did it find itself."
+The retrieval evidence for this project is the held-out ablation
+(scripts/evaluate.py) and the distribution-shift measurement
+(scripts/measure_distribution_shift_v2.py).
 
 Usage:
-    python scripts/measure_recall_at_k.py \
-        --chroma-db-dir ./chroma_db --coco-img-dir ./coco/val2017 \
-        --coco-ann-file ./coco/annotations/captions_val2017.json \
+    python scripts/measure_recall_at_k.py \\
+        --chroma-db-dir ./chroma_db --coco-img-dir ./coco/val2017 \\
+        --coco-ann-file ./coco/annotations/captions_val2017.json \\
         --num-samples 200 --ks 1,5,10
 """
 
@@ -80,10 +53,9 @@ def load_annotations(ann_file):
 
 
 def prepare_held_out_index(source_db_dir, work_db_dir, by_image, sample_ids):
-    """Copy chroma_db -> work_db_dir, delete EVERY annotation row (all ~5
-    captions, which all share one image embedding) for each sampled image,
-    so it is genuinely absent from the index, not just missing one caption
-    among several identical-embedding siblings."""
+    """Copy chroma_db to work_db_dir and delete every caption row of each
+    sampled image (they all share one embedding), so the image is absent.
+    """
     if os.path.exists(work_db_dir):
         shutil.rmtree(work_db_dir)
     shutil.copytree(source_db_dir, work_db_dir)
@@ -100,10 +72,10 @@ def prepare_held_out_index(source_db_dir, work_db_dir, by_image, sample_ids):
 
 
 def run_variant(label, db_manager, queries, by_image, sample_ids, ks, max_k):
-    """queries: list of (img_id, query_embedding) pairs, aligned to sample_ids
-    (img_id may be None for random-vector queries, which have no 'own
-    caption' to look for and therefore always score 0 by construction --
-    that's the point of the random control)."""
+    """queries: list of (img_id, query_embedding) pairs aligned with
+    sample_ids. img_id is None for random-vector queries, which always
+    score 0.
+    """
     hits_at_k = {k: 0 for k in ks}
     first_hit_ranks = []
     n = len(queries)
@@ -190,7 +162,7 @@ def main():
 
     results = {}
 
-    # --- baseline: real queries against the UN-held-out index ---
+    # --- baseline: real queries against the full index ---
     db_baseline = DatabaseManager(Config(chroma_db_dir=args.chroma_db_dir))
     db_baseline.initialize()
     print(f"\nBaseline index: {db_baseline.get_stats()['total_embeddings']} embeddings (not held out)")
@@ -204,7 +176,7 @@ def main():
         max_k,
     )
 
-    # --- random control: same un-held-out index, random-vector queries ---
+    # --- random control: random vectors against the full index ---
     results["random_control"] = run_variant(
         "random control (unheld-out index, random-vector queries -- expected: ~chance floor)",
         db_baseline,
@@ -215,7 +187,7 @@ def main():
         max_k,
     )
 
-    # --- held-out: real queries against an index with the sample fully removed ---
+    # --- held-out: real queries with their images removed from the index ---
     held_out_dir = prepare_held_out_index(args.chroma_db_dir, args.held_out_db_dir, by_image, sample_ids)
     db_held_out = DatabaseManager(Config(chroma_db_dir=held_out_dir))
     db_held_out.initialize()

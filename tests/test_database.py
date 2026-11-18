@@ -1,7 +1,5 @@
-"""
-Tests for src/database.py against a real, throwaway ChromaDB instance in a
-temp directory — no network access or real embeddings needed, just small
-fake vectors, so this stays fast.
+"""Tests src/database.py against a temporary ChromaDB instance with small fake
+vectors.
 """
 
 import os
@@ -51,10 +49,8 @@ def test_add_and_query_round_trip():
 
 
 def test_add_accepts_numpy_float32_embeddings():
-    """Regression test: CLIP's encode_image returns np.float32 arrays, and
-    chromadb's embedding validation rejects a list of lists containing
-    np.float32 scalars (only native floats/ints, numpy arrays, or lists of
-    numpy arrays are accepted) -- add_embeddings must cast to native float.
+    """CLIP returns np.float32 arrays, which ChromaDB rejects inside lists;
+    add_embeddings must convert them to float.
     """
     import numpy as np
 

@@ -1,7 +1,3 @@
-# Lightweight, occasionally-changing dependencies used only by one-off
-# scripts (scripts/*.py), kept separate from requirements.txt so that
-# adding/changing one doesn't invalidate Docker's cached layer for the
-# heavy stack (torch/transformers/chromadb/streamlit) and force a full
-# multi-minute reinstall -- see Dockerfile, which installs this file in
-# its own layer *after* requirements.txt.
+# Dependencies used only by scripts/, installed in a separate Docker layer
+# so changes here don't reinstall the main stack.
 requests>=2.28.0

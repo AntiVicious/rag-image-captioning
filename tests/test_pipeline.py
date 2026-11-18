@@ -1,7 +1,5 @@
-"""
-Tests for src/pipeline.py that verify Pipeline construction wires all
-managers together WITHOUT loading any model or opening the database — every
-collaborator it builds is itself lazy, so this just checks that stays true.
+"""Tests that Pipeline wires its components together without loading models or
+opening the database.
 """
 
 import os

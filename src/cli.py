@@ -7,8 +7,7 @@ Usage:
     python -m src.cli caption --image path/to/image.jpg [--skip-detr]
     python -m src.cli --backend blip caption --image path/to/image.jpg
 
-    # Build against a smaller/different COCO split (e.g. val2017 instead of
-    # the ~18GB train2017 Config defaults to):
+    # Build from val2017 instead of the default train2017 (~18 GB):
     python -m src.cli --coco-img-dir ./coco/val2017 \\
         --coco-ann-file ./coco/annotations/captions_val2017.json build-db
 """

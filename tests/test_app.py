@@ -1,7 +1,5 @@
-"""
-Tests app.py's initial render using Streamlit's AppTest harness (headless —
-no browser, no server). No image is uploaded and the pipeline is never
-initialized, so this never touches CLIP/ChromaDB/BLIP-2.
+"""Tests app.py's initial render with Streamlit's AppTest (headless). No image
+is uploaded, so no models or database are loaded.
 """
 
 import os

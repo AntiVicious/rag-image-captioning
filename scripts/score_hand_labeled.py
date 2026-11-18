@@ -1,20 +1,17 @@
-"""
-Before/after pycocoevalcap scoring against REAL hand-written reference
-captions for a sample of Indian-context images -- not the retrieved-caption-
-as-ground-truth proxy the rest of the distribution-shift analysis uses.
+"""Scores retrieval before and after augmentation against hand-written
+reference captions for a sample of Indian-context images, using
+pycocoevalcap.
 
-"Before": each image is CLIP-encoded fresh and queried (top1) against the
-pre-augmentation COCO-only index.
-"After": the SAME image's embedding is pulled directly out of the augmented
-index (it's already indexed there) and queried (top1) against that index
-with its own embedding masked out, so it can't self-match.
+Before: each image is CLIP-encoded and queried (top1) against the COCO-only
+index. After: the image's stored embedding is read from the augmented index
+and queried against it with its own row masked out.
 
-Usage (inside the eval image, for pycocoevalcap):
+Usage (inside the eval image):
     docker run --rm \\
-      -v <indian_datasets>/merged_images:/app/merged_images \\
-      -v <clone>/chroma_db:/app/chroma_db_before \\
-      -v D:\\chroma_db_augmented:/app/chroma_db_augmented \\
-      -v <repo>/dist_shift_output:/app/dist_shift_output \\
+      -v /path/to/merged_images:/app/merged_images \\
+      -v /path/to/chroma_db:/app/chroma_db_before \\
+      -v /path/to/chroma_db_augmented:/app/chroma_db_augmented \\
+      -v /path/to/dist_shift_output:/app/dist_shift_output \\
       rag-image-captioning:eval python scripts/score_hand_labeled.py
 """
 
@@ -75,7 +72,7 @@ def main():
     model_manager = ModelManager(config)
     model_manager.load_clip_model()
 
-    # --- BEFORE: fresh CLIP encode, query the pre-augmentation COCO-only index ---
+    # --- BEFORE: encode with CLIP and query the COCO-only index ---
     before_client = chromadb.PersistentClient(path=args.before_db)
     before_coll = before_client.get_collection(config.collection_name)
 
@@ -92,8 +89,8 @@ def main():
         docs = (result.get("documents") or [[]])[0]
         before_predictions[img_id] = docs[0] if docs else ""
 
-    # --- AFTER: pull the already-indexed embedding, query the augmented index
-    #     (numpy, self-masked) ---
+    # --- AFTER: query the augmented index with the stored embedding,
+    #     excluding its own row ---
     after_client = chromadb.PersistentClient(path=args.after_db)
     after_coll = after_client.get_collection(config.collection_name)
     print(f"Fetching all {after_coll.count()} embeddings from augmented index...")

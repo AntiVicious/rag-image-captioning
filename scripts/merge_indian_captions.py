@@ -1,14 +1,10 @@
-"""
-Merge multiple COCO-shaped captions JSON files (from ingest_labeled_dataset.py
-and scrape_commons_india.py runs) into one, for a single build-db pass.
-
-Only merges files that actually exist -- a crashed scrape run that never
-reached its own json.dump() simply has nothing to contribute here, and
-is skipped with a warning rather than erroring out.
+"""Merges COCO-style captions JSON files (from ingest_labeled_dataset.py and
+scrape_commons_india.py) into one file for a single build-db run. Missing
+input files are skipped with a warning.
 
 Usage:
-    python scripts/merge_indian_captions.py \
-        --in captions_food.json captions_commons.json captions_commons_pass3.json \
+    python scripts/merge_indian_captions.py \\
+        --in captions_food.json captions_commons.json captions_commons_pass3.json \\
         --out captions_indian_merged.json
 """
 

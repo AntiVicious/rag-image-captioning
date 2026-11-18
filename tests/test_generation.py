@@ -1,7 +1,4 @@
-"""
-Tests for src/generation.py using fake collaborators — no real CLIP,
-ChromaDB, or BLIP-2 weights involved.
-"""
+"""Tests src/generation.py with fake collaborators (no CLIP, ChromaDB or BLIP)."""
 
 import os
 import sys
@@ -40,9 +37,9 @@ class FakeBlip2Inputs(dict):
 
 
 class FakeBlip2Processor:
-    """Simulates BLIP (v1)'s real behavior: conditional generation echoes the
-    given text prompt verbatim as a prefix of its output (it continues the
-    text rather than replacing it) -- see src/generation.py's stripping logic."""
+    """Mimics BLIP repeating the text prompt at the start of its output,
+    which src/generation.py strips.
+    """
 
     def __init__(self):
         self._last_prompt = None

@@ -1,15 +1,11 @@
 """
-Retrieval-augmented generation: turns an image into a single retrieved
-caption, using CLIP embeddings + ChromaDB and, optionally, segmentation/
-object-detection crops for a richer per-region candidate pool. How the
-final caption gets chosen out of that pool is Config.selection_mode --
-see src/caption_selection.py ("medoid"/"top1") and src/caption_aggregation.py
-(the legacy "aggregated" concatenation mode).
+Turns an image into a retrieved caption using CLIP embeddings and ChromaDB,
+optionally adding segmentation or object-detection crops as extra queries.
+Config.selection_mode chooses the final caption (see caption_selection.py and
+caption_aggregation.py).
 
-RAGRetriever takes its collaborators (ModelManager, DatabaseManager,
-ImagePreprocessor) as constructor arguments rather than importing global
-singletons, so it can be unit tested against fakes without touching any
-real model or database.
+RAGRetriever receives its ModelManager, DatabaseManager and ImagePreprocessor
+as arguments, so tests can pass fakes.
 """
 
 from typing import Dict, Union
@@ -41,14 +37,11 @@ class RAGRetriever:
         self.preprocessor = preprocessor
 
     def _select(self, documents_per_variant, distances_per_variant, all_blocks):
-        """Turn a per-variant candidate pool into one final caption, per
-        Config.selection_mode -- shared by both the basic and advanced
-        retrieval paths. Returns (caption, match_distance); match_distance
-        is the ChromaDB distance of whichever candidate got selected (None
-        for the legacy "aggregated" mode, which doesn't select a single
-        candidate) -- the only confidence signal this system has, since a
-        far match means the index likely has nothing genuinely similar to
-        the query, not just an imprecise one."""
+        """Choose the final caption from the candidates per Config.selection_mode.
+
+        Returns (caption, match_distance). match_distance is the selected
+        candidate's ChromaDB distance, used as a confidence signal, or None
+        in "aggregated" mode."""
         mode = self.config.selection_mode
         if mode in ("top1", "medoid"):
             caption = select_caption(documents_per_variant, distances_per_variant, mode, self.model_manager)
@@ -62,11 +55,9 @@ class RAGRetriever:
         """Retrieve captions for an image, optionally using crop variants."""
         if top_k is None:
             top_k = self.config.default_top_k
-        # top1 only ever looks at each variant's closest candidate, so query
-        # n_results=1 directly -- this also sidesteps a real chromadb
-        # tie-break quirk where the returned top-1 among distance-tied
-        # candidates (e.g. a COCO image's ~5 co-located captions) can depend
-        # on the requested n_results (see scripts/diagnose_topk_nondeterminism.py).
+        # top1 only needs each variant's closest candidate. Requesting one
+        # result also avoids ChromaDB returning different tied candidates
+        # for different n_results (see scripts/diagnose_topk_nondeterminism.py).
         if self.config.selection_mode == "top1":
             top_k = 1
 
@@ -95,12 +86,8 @@ class RAGRetriever:
         }
 
     def _retrieve_advanced(self, image: Union[str, Image.Image], top_k: int) -> Dict:
-        """Same result as querying each variant one at a time, but the CLIP
-        encode and the ChromaDB query each run as a single batched call
-        across all variants instead of one Python-loop round trip per
-        variant -- DETR (if enabled) still dominates wall time, but this
-        removes per-call dispatch/query overhead that scales with variant
-        count for free."""
+        """Retrieve candidates for the image and its crops, batching the CLIP
+        encoding and the ChromaDB query across all variants."""
         variants = self.preprocessor.get_all_variants(image)
 
         labeled_images = [("original", variants["original"])]
@@ -115,9 +102,8 @@ class RAGRetriever:
         embeddings = self.model_manager.encode_image(batch)
         query_embeddings = embeddings.cpu().numpy().tolist()
 
-        # top_k already reflects the top1-mode n_results=1 override applied
-        # in retrieve() -- captions_per_crop is only used for medoid/aggregated,
-        # which want a real candidate pool, not just each variant's closest hit.
+        # top_k is already 1 in top1 mode; captions_per_crop applies to the
+        # medoid and aggregated modes, which need several candidates.
         query_top_k = top_k if self.config.selection_mode == "top1" else self.config.captions_per_crop
         results = self.db_manager.query_similar(query_embeddings, query_top_k)
         documents_per_variant = results.get("documents") or [[] for _ in labeled_images]

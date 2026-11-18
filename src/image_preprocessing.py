@@ -1,9 +1,8 @@
 """
 Advanced image preprocessing: segmentation and object-detection crops.
 
-Detection models are lazy-loaded on first use (not at import time, and not
-at ImagePreprocessor construction), so importing this module or building a
-preprocessor never triggers a multi-hundred-MB weights download.
+Detection models are loaded on first use, so importing this module or
+creating an ImagePreprocessor doesn't download weights.
 """
 
 from typing import Dict, List, Optional, Tuple, Union
@@ -76,9 +75,7 @@ class ImagePreprocessor:
         with torch.no_grad():
             outputs = self.segmentation_model(**inputs)
 
-        # DetrImageProcessor's panoptic checkpoint exposes
-        # post_process_panoptic_segmentation (not post_process_segmentation,
-        # which doesn't exist on this class).
+        # The panoptic processor provides post_process_panoptic_segmentation.
         result = self.segmentation_processor.post_process_panoptic_segmentation(
             outputs, target_sizes=[image.size[::-1]]
         )[0]

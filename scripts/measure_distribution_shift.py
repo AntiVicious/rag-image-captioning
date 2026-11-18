@@ -1,24 +1,15 @@
-"""
-Distribution-shift probe: how much worse is retrieval on Indian-context
-images against a COCO-only index, compared to COCO images against that
-same index?
+"""Distribution-shift probe: compares ChromaDB top-1 distances (lower means a
+closer match) for COCO images and Indian-context images against the same
+index, and records the retrieved captions. A higher distance for the Indian
+set indicates distribution shift; no reference captions are needed.
 
-For each query image, records the ChromaDB top-1 distance (lower =
-closer/more confident match) and the retrieved captions. Reports
-aggregate stats for two query sets against the SAME index:
-  - a sample of COCO's own images (the index's native distribution)
-  - the Indian-context images (food / Commons scrape)
-
-A meaningfully higher mean/median top-1 distance for the Indian set is
-direct, quantified evidence of distribution shift -- no ground-truth
-captions needed for the Indian images, just their embeddings' distance
-from whatever COCO has on file.
+Superseded by measure_distribution_shift_v2.py for the published numbers.
 
 Usage:
-    python scripts/measure_distribution_shift.py \
-        --chroma-db-dir ./chroma_db \
-        --coco-img-dir ./coco/val2017 --coco-num-samples 200 \
-        --indian-img-dir ./coco_indian/food/images --indian-num-samples 200 \
+    python scripts/measure_distribution_shift.py \\
+        --chroma-db-dir ./chroma_db \\
+        --coco-img-dir ./coco/val2017 --coco-num-samples 200 \\
+        --indian-img-dir ./coco_indian/food/images --indian-num-samples 200 \\
         --out ./distribution_shift_results.json
 """
 
@@ -38,14 +29,11 @@ from src.models import ModelManager  # noqa: E402
 
 
 def prepare_held_out_index(source_db_dir, work_db_dir, held_out_sources):
-    """Copy chroma_db -> work_db_dir, then delete every sampled query
-    image's own embeddings from the copy, so no query set can trivially
-    self-match (distance 0) against the very images that built the
-    index -- same leakage class scripts/evaluate.py guards against.
-    Must be done for EVERY query set being probed, not just one: if the
-    Indian images were themselves added to this index (the "after"
-    measurement), querying with them unheld-out finds themselves at
-    distance 0, which is a leakage artifact, not a real result.
+    """Copy chroma_db to work_db_dir and delete every query image's
+    embeddings from the copy, so no query can match itself.
+
+    This applies to every query set: after augmentation the Indian images
+    are in the index too.
 
     held_out_sources: list of (ann_file, filenames) pairs to exclude.
     """

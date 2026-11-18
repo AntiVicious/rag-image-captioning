@@ -8,13 +8,10 @@ from typing import List
 def aggregate_captions(caption_blocks: List[str], max_length: int = 500) -> str:
     """Dedupe retrieved caption blocks at the sentence level, order-preserving.
 
-    Each entry in ``caption_blocks`` may itself be several captions joined
-    by ``' '`` (as produced by a top-k retrieval query). Deduping at the
-    *word* level would turn the result into an ungrammatical word-bag
-    (e.g. "dog runs the grass cat sits") and wreck downstream text-quality
-    metrics; this dedupes whole sentences instead, using a
-    normalised-lowercase key, and truncates at a sentence boundary if the
-    joined result exceeds ``max_length``.
+    Each entry in ``caption_blocks`` may contain several captions joined by
+    ``' '``. Whole sentences are de-duplicated (case-insensitively), since
+    word-level de-duplication would produce ungrammatical text. The result is
+    truncated at a sentence boundary if it exceeds ``max_length``.
     """
     seen_norm = set()
     unique_sentences: List[str] = []

@@ -1,35 +1,21 @@
-"""
-Throwaway diagnostic that found a real bug: quantize_index.py reported a
-76.5% float16 top-1 flip rate; measure_quantization_downstream.py, on the
-same 100k-embedding sample/seed=42/200-queries/exclusion logic, reported
-1.5%. Same math on paper -- a 50x gap demanded explanation before either
-number could be trusted.
+"""Diagnostic for a discrepancy between two scripts: quantize_index.py reported
+a 76.5% float16 top-1 flip rate, while measure_quantization_downstream.py
+reported 1.5% on the same sample, seed and queries.
 
-Two hypotheses were tested here, in order:
+Hypotheses tested:
 
-1. Floating-point non-associativity between batched matmul (GEMM, used by
-   quantize_index.py's vectorised top_k_indices) and looped single-query
-   matmul (GEMV, used by measure_quantization_downstream.py's top1()) --
-   plausible given the near-tie regime the top-10 set-overlap numbers imply.
-   FALSIFIED: computing top-1 both ways on the identical float32 similarity
-   data, with no quantization involved at all, gave 0/200 disagreements.
+1. Floating-point differences between batched (GEMM) and per-query (GEMV)
+   matrix products. Rejected: computing top-1 both ways on the same float32
+   data gave 0/200 disagreements.
+2. Top-1 extraction: quantize_index.py used np.argpartition + np.argsort,
+   the other script np.argmax. On the same matrix these disagreed on
+   152/200 queries, all exact float32 ties. np.argsort's default quicksort
+   isn't stable, so ties were broken arbitrarily, differently for float32
+   and float16, while np.argmax always takes the lowest index.
 
-2. The one remaining difference: quantize_index.py extracts top-1 via
-   np.argpartition + np.argsort (for top-k speed), while the downstream
-   script uses plain np.argmax. Isolating THAT specific mechanism (this
-   file's main() below) on the SAME batched similarity matrix found the
-   real cause: 152/200 disagreements, every one inspected an exact float32
-   tie (identical similarity to 8 significant figures). np.argsort's
-   default quicksort is not stable, so on a tie it picks an arbitrary
-   winner -- differently for float32 vs its float16-quantized self -- while
-   np.argmax deterministically picks the lowest index. COCO has enough
-   near/exact-duplicate images that these ties are common, not rare.
-
-Fix applied to scripts/quantize_index.py's top_k_indices: sort the
-partition by index before the similarity sort, and make that sort stable,
-so ties resolve to the lowest index (matching np.argmax's convention).
-Re-running afterward brought quantize_index.py's flip rate to 1.5%,
-matching measure_quantization_downstream.py exactly.
+Fix (in quantize_index.top_k_indices): sort the partition by index, then
+stable-sort by similarity, so ties go to the lowest index. Afterwards both
+scripts report 1.5%.
 """
 
 import time

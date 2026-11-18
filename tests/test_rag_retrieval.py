@@ -1,7 +1,5 @@
-"""
-Tests for src/rag_retrieval.py using fake collaborators (no real CLIP,
-ChromaDB, or DETR involved) — RAGRetriever takes its dependencies as
-constructor args specifically so this is possible.
+"""Tests src/rag_retrieval.py with fake collaborators (no CLIP, ChromaDB or
+DETR); RAGRetriever accepts its dependencies as arguments for this purpose.
 """
 
 import os
@@ -25,18 +23,12 @@ class FakeModelManager:
         self._embedding = embedding
 
     def encode_image(self, tensor):
-        # real encode_image accepts a batch of N variant tensors in one
-        # call; the fake mirrors that by returning N copies of the fixed
-        # embedding, one per row in the input batch.
+        # Returns one copy of the fixed embedding per input image.
         return self._embedding.repeat(tensor.shape[0], 1)
 
     def encode_text(self, texts):
-        # Deterministic fake embeddings for testing medoid selection: the
-        # FIRST text is an "outlier" (orthogonal direction), every other
-        # text clusters on the same direction as each other -- so medoid's
-        # consensus pick is always one of the clustered (non-first) texts,
-        # regardless of retrieval distance/order, which is exactly the
-        # behavior that distinguishes medoid from top1.
+        # The first text is an orthogonal outlier and the rest share one
+        # direction, so medoid always picks a non-first text, unlike top1.
         n = len(texts)
         vecs = torch.zeros(n, 2)
         vecs[0] = torch.tensor([1.0, 0.0])
@@ -46,9 +38,9 @@ class FakeModelManager:
 
 
 class FakeDatabaseManager:
-    """Returns one caption list (+ matching distances) per query embedding,
-    all from a single batched query_similar call (matching the real batched
-    API)."""
+    """Returns one caption list and matching distances per query embedding
+    from a single batched query_similar call, like the real API.
+    """
 
     def __init__(self, documents_by_query, distances_by_query=None):
         self._documents_by_query = documents_by_query
@@ -145,10 +137,8 @@ def test_default_selection_mode_is_medoid():
 
 def test_basic_retrieval_medoid_mode_picks_consensus_candidate():
     model_manager = FakeModelManager(torch.tensor([[1.0, 0.0]]))
-    # distances (default [0, 1, 2]) would make "outlier caption." the top1
-    # pick -- medoid should escape that and pick the CONSENSUS candidate
-    # instead (see FakeModelManager.encode_text: the first text is an
-    # orthogonal outlier, the rest cluster together).
+    # By distance, "outlier caption." would be the top1 pick; medoid should
+    # pick a clustered candidate instead.
     db_manager = FakeDatabaseManager([["outlier caption.", "typical caption.", "typical caption 2."]])
     config = Config(selection_mode="medoid")
     retriever = RAGRetriever(config, model_manager, db_manager, FakePreprocessor())
@@ -156,9 +146,7 @@ def test_basic_retrieval_medoid_mode_picks_consensus_candidate():
     result = retriever.retrieve("fake.jpg", use_advanced=False)
 
     assert result["aggregated_caption"] == "typical caption."
-    # medoid's pick isn't necessarily the closest candidate by distance --
-    # here it picked index 1 ("typical caption."), whose own distance (not
-    # index 0's) is what should be reported.
+    # medoid picked index 1, so index 1's distance should be reported.
     assert result["match_distance"] == 1.0
 
 

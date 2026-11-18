@@ -1,27 +1,20 @@
-"""
-Corrected, consolidated distribution-shift measurement.
+"""Distribution-shift measurement used for the published results (before,
+after, and after with near-duplicates excluded).
 
-Supersedes scripts/measure_distribution_shift.py + scripts/audit_near_duplicates.py
-for this specific before/after/dedup-corrected number, fixing a real scope bug
-found while preparing hand-labeled references: the original "after" query
-sample (dist_shift_output/distribution_shift_after2.json) was drawn ONLY from
-the --indian-img-dir the run happened to point at, which was the Indian FOOD
-subset -- so the entire "-53.8% / -36.1%" distribution-shift result to date
-represents food images only, not the full 12,538-image Indian-context set
-(7,768 of which are Wikimedia Commons photos: festivals, weddings, monuments,
-etc., NOT food). This script draws a single query sample uniformly from the
-WHOLE merged annotation set, so both subsets are represented proportionally.
+Replaces measure_distribution_shift.py and audit_near_duplicates.py for
+these numbers. The earlier "after" sample was drawn only from the food
+subset, leaving out the 7,768 Wikimedia Commons images; this script samples
+uniformly from the whole 12,538-image Indian-context set.
 
-Operates entirely on embeddings already stored in ChromaDB (chroma_db_augmented
-has both COCO and Indian rows; the pre-augmentation COCO-only index is used
-for the "before" measurement) -- no image files, no CLIP model needed, so this
-runs in seconds, not minutes.
+It works only on embeddings already stored in ChromaDB (the augmented index
+for "after", the COCO-only index for "before"), so no images or CLIP model
+are needed.
 
-Usage (inside the eval/app Docker image, for a matching chromadb version):
+Run inside the Docker image so the chromadb version matches the index:
     docker run --rm \\
-      -v D:\\chroma_db_augmented:/app/chroma_db_augmented \\
-      -v <clone>/chroma_db:/app/chroma_db_before \\
-      -v <repo>/dist_shift_output:/app/dist_shift_output \\
+      -v /path/to/chroma_db_augmented:/app/chroma_db_augmented \\
+      -v /path/to/chroma_db:/app/chroma_db_before \\
+      -v /path/to/dist_shift_output:/app/dist_shift_output \\
       rag-image-captioning:eval python scripts/measure_distribution_shift_v2.py
 """
 
@@ -95,7 +88,7 @@ def main():
     before_embeddings = before_embeddings / np.clip(before_norms, 1e-8, None)
     print(f"Pre-augmentation (COCO-only) index: {len(before_ids)} embeddings")
 
-    # --- sample 200 Indian images uniformly across the FULL merged set ---
+    # --- sample 200 Indian images from the whole set ---
     indian_image_ids = sorted({int(ids[i].split("_")[0]) for i in indian_idx})
     rng = np.random.RandomState(args.seed)
     sample_indian_ids = rng.choice(
@@ -127,8 +120,7 @@ def main():
     coco_mask = np.array([gid not in coco_query_gids for gid in before_ids])
     coco_baseline_records = []
     for img_id in sample_coco_ids:
-        # a query image's embedding is identical across all its caption rows;
-        # use the first row found for this image_id
+        # all caption rows of an image share one embedding; use the first
         row = next(i for i, gid in enumerate(before_ids) if int(gid.split("_")[0]) == img_id)
         emb = before_embeddings[row]
         sims = before_embeddings[coco_mask] @ emb

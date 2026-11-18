@@ -1,30 +1,55 @@
 # demo/
 
-Streamlit Community Cloud entry point for the [live demo](https://rag-image-captioning-fxxzqkhwjuqyx5s6rthwxj.streamlit.app/) — deliberately separate from the root `app.py`/`requirements.txt`, in its own directory with its own `demo/requirements.txt`. Main file: `demo_app.py`.
+Streamlit Community Cloud app for the
+[live demo](https://rag-image-captioning-fxxzqkhwjuqyx5s6rthwxj.streamlit.app/).
+Main file: `demo_app.py`, with its own `requirements.txt`, separate from the
+root app.
 
-## Two tabs, two different honesty tradeoffs
+## Tabs
 
-- **📸 Precomputed gallery (opens by default).** 40 held-out COCO val2017 images, run offline through all 8 configs this project's ablation covers (2 selection strategies x 4 crop configs) via `scripts/evaluate.py --save-predictions`, merged into `demo/gallery_data.json` and downsized into `demo/gallery_images/` by `scripts/build_gallery_data.py`. Flipping the selection/crop toggles here shows the real output of the real best-scoring config (medoid + segmentation crops) — no model loaded, no upload needed, zero runtime cost.
-- **📤 Upload your own.** Runs live retrieval against a real index, but honestly scoped to what Community Cloud's free tier (~1GB RAM) can actually run: retrieval-only, no DETR crops, no BLIP. It cannot run the project's actual shipped default — that needs `transformers`/DETR and more RAM than this host offers. The gallery tab is what a visitor should look at to see that config's real output; this tab is for trying an arbitrary photo against the lighter-weight path.
+- **Precomputed gallery (default).** 40 held-out COCO val2017 images, run
+  offline through all 8 ablation configurations (2 selection strategies × 4
+  crop configurations) with `scripts/evaluate.py --save-predictions`, then
+  merged into `gallery_data.json` and resized into `gallery_images/` by
+  `scripts/build_gallery_data.py`. The toggles show the real output of each
+  configuration, including the default (medoid + segmentation crops), without
+  loading any model.
+- **Upload your own.** Live retrieval against the full index, limited to
+  what the free tier (about 1 GB RAM) can run: retrieval only, without DETR
+  crops or BLIP. For the default configuration on your own images, run the
+  project locally with Docker.
 
-## Why this is a separate directory, not just a separate file
+## Why a Separate Directory
 
-Streamlit Community Cloud looks for a `requirements.txt` next to the app's main file first. The root `requirements.txt` pins `transformers==4.46.3` for a real, Linux-reproduced DETR-loading bug (see the main README's "Known issues") — but that pin transitively ceilings `tokenizers<0.21`, and building an old `tokenizers` from source needs a Rust toolchain new enough for whatever Python Community Cloud currently defaults to, which isn't guaranteed. Three separate packages (`torch`/`torchvision`, then `sentencepiece`, then `tokenizers`-via-`transformers`) failed to build against Community Cloud's Python this way before the fix became "don't install `transformers` in the demo at all," not "unpin the next thing that breaks."
+Streamlit Community Cloud installs the `requirements.txt` next to the main
+file. The root `requirements.txt` pins `transformers==4.46.3`, which
+requires an old `tokenizers` release with no prebuilt wheel for the Python
+version Community Cloud uses; building it from source failed. The demo
+therefore doesn't install `transformers` at all.
 
-This is safe, not just convenient: every `transformers` import in `src/` (DETR loaders in `image_preprocessing.py`, the BLIP loader in `models.py`) is inside a lazy-loading function body, never at module level — so `demo_app.py`, which never calls those paths, genuinely doesn't need `transformers` installed at all. `demo/requirements.txt` has no exact pins, on purpose: this demo runs on whatever Python Community Cloud happens to default to on a given day, which this project doesn't control.
+This works because every `transformers` import in `src/`
+(`image_preprocessing.py` for DETR, `models.py` for BLIP) is inside a
+function, and the demo never calls those functions. `demo/requirements.txt`
+is unpinned, since the host's Python version can change.
 
-## What's different from the "real" shipped app
+## Data
 
-Driven by Community Cloud's free-tier constraints (~1GB RAM; no `transformers` installed here at all):
+The ChromaDB index (COCO val2017 plus about 12,500 Indian-context images) is
+not in the repository. The app downloads it on first start from the
+Hugging Face dataset
+[`AntiVicious/rag-image-captioning144-index`](https://huggingface.co/datasets/AntiVicious/rag-image-captioning144-index).
 
-1. The ChromaDB index for the upload tab (COCO val2017 + ~12,500 Indian-context images) isn't in the repo (`chroma_db/` is gitignored) — downloaded from a public HF Dataset ([`AntiVicious/rag-image-captioning144-index`](https://huggingface.co/datasets/AntiVicious/rag-image-captioning144-index)) on first boot, if not already present locally.
-2. The upload tab is retrieval-only, no crops, no BLIP toggle. The actual shipped default (medoid selection + DETR segmentation crops, see `src/config.py` and the main README) needs `transformers`/DETR and well over 1GB RAM in practice — neither fits a ~1GB, `transformers`-free free host. Run this project locally via Docker (see the main README) for the real default with live upload, or use the gallery tab to see its real, precomputed output.
+## Running Locally
 
-## Running this locally without Docker
+The Codespaces badge in the main README opens a container that installs
+`demo/requirements.txt` and starts the demo (see
+`.devcontainer/devcontainer.json`). Locally, from the repository root:
 
-GitHub Codespaces (badge in the main README) uses `.devcontainer/devcontainer.json` to install `demo/requirements.txt` and launch `streamlit run demo/demo_app.py` automatically — same lightweight path as the deployed demo, no local setup. Locally: `pip install -r demo/requirements.txt && streamlit run demo/demo_app.py` from the repo root.
+```bash
+pip install -r demo/requirements.txt && streamlit run demo/demo_app.py
+```
 
-## Regenerating the gallery
+## Regenerating the Gallery
 
 ```bash
 docker run --rm \

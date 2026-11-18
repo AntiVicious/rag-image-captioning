@@ -1,33 +1,14 @@
 """
-Streamlit Community Cloud entry point -- deliberately separate from app.py,
-in its own demo/ subdirectory with its own demo/requirements.txt.
+Streamlit Community Cloud app, with its own demo/requirements.txt (see
+demo/README.md for why it lives in a separate directory).
 
-Why a separate directory, not just a separate file: Streamlit Community
-Cloud looks for a requirements.txt next to the app's main file first. The
-root requirements.txt pins transformers==4.46.3 for a real, Linux-
-reproduced DETR-loading bug -- but that pin transitively ceilings
-tokenizers<0.21, and building an old tokenizers from source needs a Rust
-toolchain new enough for whatever Python Community Cloud currently
-defaults to, which isn't guaranteed (confirmed the hard way, twice: torch,
-then sentencepiece, then tokenizers-via-transformers all failed to build
-against Community Cloud's Python before this split). This directory's
-requirements.txt never installs transformers at all, which is safe because
-every `transformers` import in src/ (DETR loaders in image_preprocessing.py,
-the BLIP loader in models.py) is inside a lazy-loading function body, never
-at module level -- and this demo never calls those paths.
+Differences from app.py, due to the free tier's ~1 GB of RAM:
 
-What's different from the "real" shipped app, driven by Community Cloud's
-free-tier constraints (~1GB RAM; no transformers installed here at all):
-
-1. The ChromaDB index (COCO val2017 + ~12,500 Indian-context images) isn't
-   in the repo (chroma_db/ is gitignored) -- downloaded from a public HF
-   Dataset on first boot, if not already present locally.
-2. Retrieval-only, no crops, no BLIP toggle. The actual shipped default
-   (medoid selection + DETR segmentation crops, see src/config.py and the
-   main README) needs transformers/DETR and well over 1GB RAM in practice
-   (this project's own README documents that from the WSL2 memory-cap
-   section) -- neither fits a ~1GB, transformers-free free host. Run this
-   project locally via Docker (see the main README) for the real default.
+1. The ChromaDB index is downloaded from a Hugging Face dataset on first
+   start instead of being built locally.
+2. The upload tab is retrieval-only, without DETR crops or BLIP, which need
+   transformers and more memory. The gallery tab shows precomputed results
+   for all configurations.
 """
 
 import os
@@ -72,19 +53,11 @@ CROP_LABELS = {
 }
 SELECTION_LABELS = {"top1": "top1 (nearest-neighbor)", "medoid": "medoid (consensus)"}
 
-# Retrieval-based captioning has no other notion of "am I right" beyond "how
-# close was the nearest thing I found." Empirically checked against four
-# real, diverse photos NOT drawn from COCO/the Indian-context set (a casual
-# selfie, a terminal screenshot, a stylised anime wallpaper, an outdoor
-# chess photo) -- genuinely good matches in this index sit around 0.15-0.35;
-# all four out-of-domain probes came back at 0.47-0.86, and their captions
-# were confidently wrong (temple/monument captions for a photo of two men
-# indoors, a farmers'-protest caption for a chess photo). This index is
-# ~37.5K images (COCO val2017 scenes + Indian food/festival/temple photos)
-# -- small, and biased toward those two domains. A random personal photo
-# has real odds of landing far from anything the index actually contains,
-# and the UI should say so instead of presenting a wrong caption as if it
-# were a good one.
+# The match distance is the only confidence signal. Good matches in this
+# index score about 0.15-0.35. Four out-of-domain test photos (a selfie, a
+# screenshot, artwork, a chess game) scored 0.47-0.86 and got wrong captions.
+# The index (~37.5K images of COCO scenes and Indian food, festivals and
+# temples) is small, so the UI warns when a match is this far.
 LOW_CONFIDENCE_DISTANCE = 0.45
 
 
@@ -232,8 +205,8 @@ def render_upload_tab() -> None:
                             st.error(
                                 f"⚠️ Low-confidence match (distance {match_distance:.2f} -- typical "
                                 f"good matches are under {LOW_CONFIDENCE_DISTANCE:.2f}). This image "
-                                "likely isn't well represented in the index; the caption below is "
-                                "probably inaccurate, not just imprecise."
+                                "likely isn't well represented in the index, so the caption below is "
+                                "probably wrong."
                             )
                         st.info(result["generated_caption"])
                         if match_distance is not None:

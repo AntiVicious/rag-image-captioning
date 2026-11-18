@@ -1,6 +1,5 @@
-"""
-Fast tests for src/config.py. No ML deps: Config only imports torch lazily
-inside the .device property, so constructing/inspecting it is cheap.
+"""Tests for src/config.py. Config imports torch only inside .device, so these
+need no ML dependencies.
 """
 
 import os
@@ -16,8 +15,7 @@ from src.config import Config  # noqa: E402
 
 
 def test_defaults_favor_no_gpu_by_default():
-    # This project is developed/tested on machines without a GPU; retrieval
-    # mode must be the default so tests/CI never need BLIP-2 weights.
+    # Retrieval is the default so tests and CI never need BLIP weights.
     config = Config()
     assert config.caption_backend == "retrieval"
 

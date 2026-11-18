@@ -1,24 +1,14 @@
 """
-Caption SELECTION strategies: choosing ONE caption out of a pool of
-retrieved candidates. Contrast with caption_aggregation.py, which
-concatenates/dedupes MULTIPLE candidates into one block -- that's a
-different (and, per the ablation in scripts/evaluate.py /
-results/selection_strategy_ablation.csv, worse-scoring) strategy, kept
-available as Config.selection_mode == "aggregated" for backward
-compatibility.
+Strategies for choosing one caption from the retrieved candidates.
+(caption_aggregation.py instead combines several candidates, which scores
+lower; see results/selection_strategy_ablation.csv.)
 
-medoid needs a live CLIP model (text-embedding similarity), so -- unlike
-caption_aggregation.py -- this module is not import-safe without ML deps;
-kept separate for that reason.
-
-    top1   -- the candidate closest to the QUERY IMAGE (lowest ChromaDB
+    top1   -- the candidate closest to the query image (lowest ChromaDB
               distance). No extra model calls.
-    medoid -- the candidate closest, on average, to every OTHER candidate
-              in the retrieved pool -- a consensus pick, via CLIP text-
-              embedding similarity, instead of "closest to the query
-              image." Costs one extra encode_text() call over the pool,
-              and empirically outperforms top1 once there's more than one
-              variant's worth of candidates to pick from.
+    medoid -- the candidate most similar, on average, to the other
+              candidates, using CLIP text embeddings. Needs one extra
+              encode_text() call and scores higher than top1 when crops
+              add more candidates.
 """
 
 from typing import List, Sequence
@@ -27,9 +17,10 @@ from typing import List, Sequence
 def select_top1(
     documents_per_variant: Sequence[List[str]], distances_per_variant: Sequence[List[float]]
 ) -> str:
-    """Global best candidate across every variant queried, by ChromaDB
-    distance. Each variant's own results are already distance-sorted
-    ascending, so only each variant's first candidate can possibly win."""
+    """Candidate with the lowest ChromaDB distance across all variants.
+
+    Each variant's results are sorted by distance, so only each variant's
+    first candidate is compared."""
     best_doc, best_dist = None, None
     for docs, dists in zip(documents_per_variant, distances_per_variant):
         if not docs:
@@ -73,18 +64,12 @@ def select_caption(
 def match_distance_for(
     documents_per_variant: Sequence[List[str]], distances_per_variant: Sequence[List[float]], document: str
 ):
-    """The ChromaDB distance reported for a specific retrieved document,
-    found by scanning the per-variant candidate lists for a match -- works
-    regardless of which strategy selected `document` (top1's own choice is
-    trivially its own distance; medoid's consensus pick isn't necessarily
-    the closest candidate, so this is the only way to know how far even the
-    WINNING candidate actually was from the query image).
+    """ChromaDB distance of a selected document, found in the candidate lists.
 
-    This is what a confidence signal for this system has to be: retrieval-
-    based captioning has no other notion of "am I right" beyond "how close
-    was the thing I'm returning text from." A high distance here means the
-    index likely has nothing genuinely similar to the query -- the caption
-    can still be confidently wrong in that case, not just imprecise."""
+    Used as the confidence signal: a large distance means the index probably
+    has nothing similar to the query, so the caption is likely wrong. The
+    medoid choice isn't necessarily the closest candidate, so its distance
+    has to be looked up."""
     for docs, dists in zip(documents_per_variant, distances_per_variant):
         for doc, dist in zip(docs, dists):
             if doc == document:

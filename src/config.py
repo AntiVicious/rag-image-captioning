@@ -1,10 +1,8 @@
 """
 Configuration for the RAG Image Captioning system.
 
-A single typed, instantiable Config (as opposed to bare module-level
-constants) so it can be constructed with overrides in tests/CI without
-monkeypatching a module, and so multiple configurations can coexist in the
-same process if ever needed.
+A dataclass rather than module constants, so tests can create instances
+with overrides.
 """
 
 import os
@@ -35,20 +33,11 @@ class Config:
     # Retrieval
     default_top_k: int = 5
 
-    # Advanced preprocessing (segmentation / object detection crops)
-    # enable_segmentation defaults ON: under selection_mode="medoid" (the
-    # default below), +segmentation is the single best-scoring config
-    # measured in this project (CIDEr 0.537 vs retrieval-only's 0.486 --
-    # see results/selection_strategy_ablation.csv) -- shipping the config
-    # the data actually recommends, not the one an earlier (top1-selection,
-    # since-superseded) measurement recommended. The real cost is latency,
-    # not quality: DETR adds ~10s/image on this CPU-only dev machine. Use
-    # `--skip-detr` (src/cli.py) / set this False directly when latency
-    # matters more than the ~11% CIDEr gain.
-    # enable_object_detection stays OFF: under medoid, adding it on top of
-    # segmentation (the "all-seven" config, CIDEr 0.512) scores WORSE than
-    # segmentation alone (0.537) -- it's not "more crops = better," it's
-    # specifically segmentation crops that earn their cost here.
+    # Crops. With medoid selection, segmentation crops give the best CIDEr
+    # measured (0.537 against 0.486 without crops; see
+    # results/selection_strategy_ablation.csv) at about 10 s/image on CPU.
+    # Use --skip-detr (src/cli.py) to turn them off. Adding object-detection
+    # crops as well scores lower (0.512), so it stays off.
     enable_segmentation: bool = True
     enable_object_detection: bool = False
     crops_per_mode: int = 3
@@ -60,34 +49,22 @@ class Config:
     captions_per_crop: int = 3
     aggregate_captions: bool = True
 
-    # How RAGRetriever picks a final caption out of the retrieved candidate
-    # pool (src/caption_selection.py):
-    #   "medoid" -> consensus pick: the candidate most similar, on average, to
-    #               the rest of the pool (CLIP text-embedding similarity).
-    #               Empirically the best-scoring strategy measured (see
-    #               results/selection_strategy_ablation.csv) -- the default.
-    #   "top1"   -> the candidate closest to the query image (lowest ChromaDB
-    #               distance). Simpler, no extra model call, but scores lower.
-    #   "aggregated" -> legacy behavior: concatenate/dedupe every candidate
-    #               via aggregate_captions() instead of picking one. Kept for
-    #               backward compatibility; not recommended (this is the
-    #               concatenation that caused the original CIDEr collapse
-    #               bug when output length wasn't held constant).
+    # How RAGRetriever picks the final caption (src/caption_selection.py):
+    #   "medoid"     -> the candidate most similar, on average, to the others
+    #                   (CLIP text embeddings). Best measured; the default.
+    #   "top1"       -> the candidate closest to the query image.
+    #   "aggregated" -> concatenates and de-duplicates all candidates. Kept
+    #                   for compatibility; its longer output distorts
+    #                   length-sensitive metrics.
     selection_mode: str = "medoid"
 
     # Caption generation backend:
-    #   "retrieval" -> aggregated retrieved captions ARE the output (no LLM, no GPU needed)
-    #   "blip"      -> a BLIP captioner generates the final caption, conditioned on the
-    #                  retrieved context as a text prompt
+    #   "retrieval" -> the selected retrieved caption is the output (no GPU needed)
+    #   "blip"      -> BLIP generates the caption, prompted with the retrieved text
     caption_backend: str = "retrieval"
-    # Salesforce/blip2-opt-2.7b (2.7B params) was the original choice here, but is
-    # impractical on a CPU-only dev machine (multi-minute generations, ~15GB of
-    # weights) and its empty-caption output was never root-caused before this got
-    # deprioritised. Swapped for BLIP (v1) base -- ~990MB, ~247M params, genuinely
-    # usable on CPU -- which supports the same text-conditioned captioning API
-    # (image + text prompt in, caption out) this system needs. The attribute/method
-    # names in ModelManager (blip2_model, load_blip2_model, ...) are legacy and now
-    # load this model, not BLIP-2; kept as-is to avoid an unrelated rename churn.
+    # BLIP base (~247M parameters) runs on CPU; BLIP-2 (2.7B) was too slow
+    # without a GPU. The blip2_* names in ModelManager are historical and load
+    # this model.
     blip2_model_name: str = "Salesforce/blip-image-captioning-base"
     max_new_tokens: int = 50
     num_beams: int = 3

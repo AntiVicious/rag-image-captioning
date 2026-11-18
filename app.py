@@ -13,12 +13,10 @@ from src.pipeline import Pipeline
 
 st.set_page_config(page_title="RAG Image Captioning", page_icon="🖼️", layout="wide")
 
-# Retrieval-based captioning has no notion of "am I right" beyond "how close
-# was the nearest match" -- see Result.match_distance (src/rag_retrieval.py).
-# Empirically, genuinely good matches against the shipped index sit around
-# 0.15-0.35; real out-of-domain probes (a selfie, a screenshot, stylised
-# art, an activity photo) came back at 0.47-0.86 with confidently wrong
-# captions, not just imprecise ones. Surface that instead of hiding it.
+# The match distance is the only confidence signal. Good matches in the
+# index score about 0.15-0.35; out-of-domain test photos (a selfie, a
+# screenshot, artwork) scored 0.47-0.86 with wrong captions, so the UI warns
+# above this threshold.
 LOW_CONFIDENCE_DISTANCE = 0.45
 
 
@@ -30,9 +28,8 @@ def load_pipeline(caption_backend: str) -> Pipeline:
 def empty_caption_message() -> str:
     """Guidance shown when generation returns an empty caption.
 
-    An empty result almost always means the ChromaDB collection has no
-    captions indexed yet (a fresh clone never ran `build-db`), not that
-    something crashed -- so this is surfaced as guidance, not an error.
+    An empty result usually means the index is empty because `build-db`
+    hasn't been run.
     """
     return (
         "No caption was generated. If this is a fresh clone, the ChromaDB "
@@ -118,7 +115,7 @@ def main() -> None:
                                 f"⚠️ Low-confidence match (distance {match_distance:.2f}). Retrieval-"
                                 "based captioning can only return text from a real match already in "
                                 "the index -- this image likely isn't well represented in it, so the "
-                                "caption below may be confidently wrong, not just imprecise."
+                                "caption below is probably wrong."
                             )
                         st.info(result["generated_caption"])
                         if match_distance is not None:

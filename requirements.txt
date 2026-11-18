@@ -1,45 +1,25 @@
-# Pinned exactly: newer torch releases (confirmed through 2.13.0) ship a
-# Windows CPU wheel whose native c10.dll fails to load ("OSError: [WinError
-# 1114] A dynamic link library (DLL) initialization routine failed") on at
-# least one real Windows dev machine, even with the VC++ 2015-2022
-# Redistributable already installed. 2.5.1/0.20.1 is a confirmed-working
-# pair on that machine; unpin only after verifying newer releases on Windows.
-# (This file is used by Docker/local only -- the public demo lives in
-# demo/ with its own, deliberately unpinned requirements.txt, specifically
-# so a moving-target host like Streamlit Community Cloud never forces an
-# exact pin here to be loosened again.)
+# Pinned: newer torch Windows CPU wheels fail to load c10.dll (WinError
+# 1114) on a tested Windows machine. The demo uses demo/requirements.txt.
 torch==2.5.1
 torchvision==0.20.1
 numpy>=1.21.0
 open_clip_torch>=2.0.0
 
 # Database
-# Pinned >=0.4: PersistentClient and the current list_collections/get_collection API arrived in 0.4.
+# PersistentClient and the current collection API require 0.4+.
 chromadb>=0.4.0
 
 # Advanced preprocessing: segmentation + object detection
-# Pinned exactly: transformers 5.x's DetrForSegmentation.from_pretrained()
-# blows past 10GB RSS and gets OOM-killed loading a ~180MB safetensors
-# checkpoint on CPU (reproduced in a Linux container, so not a Windows-only
-# issue). Older 4.44.0 avoids that, but hits a *different*, genuine bug:
-# safetensors_conversion.auto_conversion() constructs HfApi(headers=
-# http_user_agent()), passing a string where a dict is required, so
-# build_hf_headers() -> dict.update(a_string) blows up ("dictionary update
-# sequence element #0 has length 1; 2 is required") -- fixed upstream in
-# huggingface/transformers#34010, first released in 4.46.0. 4.46.3 has
-# neither bug: confirmed-working for DetrForSegmentation on CPU.
+# Pinned: with 5.x, loading DetrForSegmentation exceeds 10 GB of memory;
+# 4.44.0 and earlier fail in safetensors auto-conversion (fixed in
+# huggingface/transformers#34010, 4.46.0).
 transformers==4.46.3
 Pillow>=8.3.0
 
-# BLIP-2 caption generation backend
+# BLIP caption backend
 accelerate>=0.20.0
-# Pinned exactly: sentencepiece 0.2.2 (latest as of writing) crashes with a
-# native access violation on `import sentencepiece` alone on the same
-# Windows dev machine referenced above -- deterministic across repeated
-# runs, not an ASLR fluke. Also crashes indirectly: `import open_clip`
-# transitively imports transformers' AutoTokenizer machinery, which imports
-# sentencepiece, which crashes -- so this bites even the "retrieval"
-# backend (CLIP-only), not just BLIP-2. 0.2.0 is confirmed-working.
+# Pinned: sentencepiece 0.2.2 crashes on import on the same Windows machine,
+# and open_clip imports it indirectly.
 sentencepiece==0.2.0
 
 # CLI / dataset ingestion

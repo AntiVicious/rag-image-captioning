@@ -63,9 +63,8 @@ class Pipeline:
             if fn.endswith(".jpg")
         }
 
-        # COCO has ~5 captions per image. Group by image_id, encode each
-        # image ONCE, then emit one row per caption sharing that embedding
-        # (instead of re-encoding the same image once per caption).
+        # COCO has ~5 captions per image: encode each image once and store
+        # one row per caption with that embedding.
         captions_by_img: Dict[int, List[Tuple[int, str]]] = defaultdict(list)
         for ann in annotations:
             captions_by_img[ann["image_id"]].append((ann["id"], ann["caption"]))

@@ -1,9 +1,8 @@
 """
 Model loading and management.
 
-Models are loaded lazily — on first call to a `load_*` method, never at
-import time or at ModelManager construction time — so importing this
-module or constructing a ModelManager never triggers a weights download.
+Models are loaded on the first call to a `load_*` method, so importing this
+module or creating a ModelManager doesn't download weights.
 """
 
 from typing import Callable, Tuple
@@ -43,11 +42,8 @@ class ModelManager:
     def load_blip2_model(self):
         """Load and cache the caption-generation model plus its processor.
 
-        Despite the name (kept for API stability -- see Config.blip2_model_name),
-        this loads BLIP (v1) base by default, not BLIP-2: BLIP-2 (2.7B params) is
-        impractical on a CPU-only machine, whereas BLIP base (~247M params) runs
-        real inference in seconds on CPU and supports the same text-conditioned
-        captioning call shape (image + text prompt -> caption)."""
+        Despite the name, this loads BLIP base by default (see
+        Config.blip2_model_name), which runs on CPU in seconds."""
         if self.blip2_model is not None:
             return self.blip2_model, self.blip2_processor
 
@@ -75,10 +71,9 @@ class ModelManager:
             return embedding
 
     def encode_text(self, texts) -> torch.Tensor:
-        """Encode a list of strings into normalised CLIP text embeddings, using
-        the same backbone/checkpoint already loaded for image encoding -- this
-        keeps text and image embeddings in one consistent space, which is what
-        CLIPScore (Hessel et al. 2021, arXiv:2104.08718) needs."""
+        """Encode strings into normalised CLIP text embeddings with the same
+        model used for images, so both share one embedding space (as CLIPScore,
+        Hessel et al. 2021, arXiv:2104.08718, requires)."""
         if self.clip_model is None:
             raise RuntimeError("CLIP model not loaded. Call load_clip_model() first.")
         import open_clip
